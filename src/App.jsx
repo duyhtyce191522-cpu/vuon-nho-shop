@@ -993,7 +993,7 @@ export default function PlantShop() {
                   COLORS.forest,
               }}
             >
-              Vườn Nhỏ
+              Vườn Nhỏ của Yến Duy 
             </span>
           </div>
 
