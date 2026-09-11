@@ -2841,7 +2841,7 @@ function AdminView({
               "16px",
           }}
         >
-          Mật khẩu demo: admin123
+        
         </p>
 
         <input
