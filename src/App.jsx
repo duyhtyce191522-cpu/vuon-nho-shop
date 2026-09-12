@@ -216,9 +216,23 @@ function App() {
       const response = await fetch(`${API_URL}/api/users/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password: loginPassword }) });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success) return setLoginError(data?.message || "Đăng nhập thất bại");
-      setUser(data.user); localStorage.setItem("vn-user", JSON.stringify(data.user));
-      setShowUserLogin(false); setLoginUsername(""); setLoginPassword(""); setLoginError("");
-      showToast("Đăng nhập thành công");
+      setUser(data.user);
+      localStorage.setItem("vn-user", JSON.stringify(data.user));
+
+      setShowUserLogin(false);
+      setLoginUsername("");
+      setLoginPassword("");
+      setLoginError("");
+
+      if (data.user.role === "admin") {
+        setAdminAuthed(true);
+        setView("admin");
+        showToast("Đăng nhập quản trị thành công");
+      } else {
+        setAdminAuthed(false);
+        setView("shop");
+        showToast("Đăng nhập thành công");
+      }
     } catch (error) { console.error("User login error:", error); setLoginError("Không thể kết nối đến server"); }
   }
 
@@ -245,7 +259,11 @@ function App() {
   }
 
   function logoutUser() {
-    setUser(null); localStorage.removeItem("vn-user"); showToast("Đã đăng xuất");
+    setUser(null);
+    setAdminAuthed(false);
+    setView("shop");
+    localStorage.removeItem("vn-user");
+    showToast("Đã đăng xuất");
   }
 
   /* =======================================================
@@ -965,6 +983,531 @@ async function updateOrderStatus(id, status) {
           button:active:not(:disabled) {
             transform: scale(0.98);
           }
+
+          .vn-shop {
+            min-height: calc(100vh - 76px);
+            background:
+              radial-gradient(circle at 10% 8%, rgba(124,143,90,0.13), transparent 24%),
+              radial-gradient(circle at 92% 16%, rgba(181,101,74,0.10), transparent 22%),
+              ${COLORS.bg};
+            overflow: hidden;
+          }
+
+          .vn-hero {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 62px 28px 54px;
+            display: grid;
+            grid-template-columns: 0.95fr 1.05fr;
+            align-items: center;
+            gap: 50px;
+          }
+
+          .vn-hero-copy { position: relative; z-index: 2; }
+
+          .vn-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 13px;
+            border: 1px solid rgba(47,62,46,0.12);
+            background: rgba(255,255,255,0.72);
+            border-radius: 999px;
+            color: ${COLORS.forest};
+            font-size: 12px;
+            font-weight: 700;
+            box-shadow: 0 8px 30px rgba(47,62,46,0.06);
+          }
+
+          .vn-hero h1 {
+            margin: 20px 0 15px;
+            max-width: 650px;
+            color: ${COLORS.forestDark};
+            font-family: ${FONT_DISPLAY};
+            font-size: clamp(48px, 6vw, 76px);
+            line-height: 0.98;
+            letter-spacing: -0.045em;
+            font-weight: 600;
+          }
+
+          .vn-hero h1 span { color: ${COLORS.clay}; font-style: italic; }
+
+          .vn-hero-copy > p {
+            max-width: 560px;
+            margin: 0;
+            color: ${COLORS.inkSoft};
+            font-size: 16px;
+            line-height: 1.8;
+          }
+
+          .vn-hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-top: 28px;
+            flex-wrap: wrap;
+          }
+
+          .vn-primary-btn {
+            border: none;
+            border-radius: 13px;
+            background: ${COLORS.forest};
+            color: white;
+            padding: 13px 18px;
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 12px 26px rgba(47,62,46,0.18);
+          }
+
+          .vn-primary-btn span { font-size: 19px; line-height: 1; }
+
+          .vn-mini-note {
+            color: ${COLORS.inkSoft};
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .vn-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: ${COLORS.moss};
+            box-shadow: 0 0 0 5px ${COLORS.mossLight};
+          }
+
+          .vn-hero-art {
+            position: relative;
+            min-height: 470px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .vn-art-card {
+            position: relative;
+            width: min(470px, 84%);
+            aspect-ratio: 0.86;
+            overflow: hidden;
+            border-radius: 38% 62% 48% 52% / 30% 32% 68% 70%;
+            transform: rotate(2deg);
+            box-shadow: 0 35px 80px rgba(35,41,31,0.18);
+            border: 10px solid rgba(255,255,255,0.78);
+            background: ${COLORS.mossLight};
+            z-index: 2;
+          }
+
+          .vn-art-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+          }
+
+          .vn-art-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 52%, rgba(33,43,32,0.62));
+          }
+
+          .vn-art-label {
+            position: absolute;
+            left: 26px;
+            right: 26px;
+            bottom: 24px;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+          }
+
+          .vn-art-label span {
+            opacity: 0.65;
+            font-family: ${FONT_DISPLAY};
+            font-size: 19px;
+          }
+
+          .vn-art-orbit {
+            position: absolute;
+            border: 1px solid rgba(47,62,46,0.12);
+            border-radius: 50%;
+          }
+
+          .vn-orbit-1 { width: 390px; height: 390px; }
+          .vn-orbit-2 { width: 500px; height: 500px; border-style: dashed; }
+
+          .vn-floating-card {
+            position: absolute;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 12px 14px;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.95);
+            box-shadow: 0 18px 40px rgba(35,41,31,0.12);
+          }
+
+          .vn-floating-card strong,
+          .vn-floating-card small { display: block; }
+
+          .vn-floating-card strong { color: ${COLORS.forestDark}; font-size: 12px; }
+          .vn-floating-card small { color: ${COLORS.inkSoft}; margin-top: 3px; font-size: 10px; }
+
+          .vn-float-top { top: 58px; right: 5%; }
+          .vn-float-bottom { left: 3%; bottom: 52px; }
+
+          .vn-float-icon {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            background: ${COLORS.mossLight};
+            font-size: 17px;
+          }
+
+          .vn-section-head {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 12px 28px 26px;
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 20px;
+          }
+
+          .vn-eyebrow {
+            color: ${COLORS.moss};
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+          }
+
+          .vn-section-head h2,
+          .vn-bottom-banner h2 {
+            margin: 8px 0 5px;
+            color: ${COLORS.forest};
+            font-family: ${FONT_DISPLAY};
+            font-size: 34px;
+            line-height: 1.05;
+            font-weight: 600;
+          }
+
+          .vn-section-head p,
+          .vn-bottom-banner p {
+            margin: 0;
+            color: ${COLORS.inkSoft};
+            font-size: 13px;
+            line-height: 1.6;
+          }
+
+          .vn-stat-box {
+            min-width: 110px;
+            padding: 14px 17px;
+            border-radius: 16px;
+            background: ${COLORS.surface};
+            border: 1px solid ${COLORS.line};
+            text-align: right;
+          }
+
+          .vn-stat-box span {
+            display: block;
+            color: ${COLORS.forest};
+            font-family: ${FONT_DISPLAY};
+            font-size: 28px;
+            line-height: 1;
+          }
+
+          .vn-stat-box small { color: ${COLORS.inkSoft}; font-size: 10px; }
+
+          .vn-toolbar {
+            max-width: 1180px;
+            margin: 0 auto 26px;
+            padding: 0 28px;
+            display: flex;
+            gap: 13px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+          }
+
+          .vn-search {
+            min-width: 260px;
+            flex: 1 1 310px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: ${COLORS.surface};
+            border: 1px solid ${COLORS.line};
+            border-radius: 14px;
+            padding: 11px 13px;
+            box-shadow: 0 8px 25px rgba(35,41,31,0.04);
+          }
+
+          .vn-search > svg { color: ${COLORS.inkSoft}; flex: 0 0 auto; }
+
+          .vn-search input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: ${COLORS.ink};
+            font-size: 13px;
+          }
+
+          .vn-clear-search {
+            border: none;
+            background: transparent;
+            color: ${COLORS.inkSoft};
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+          }
+
+          .vn-categories { display: flex; gap: 7px; flex-wrap: wrap; }
+
+          .vn-categories button {
+            border: 1px solid ${COLORS.line};
+            background: rgba(255,255,255,0.7);
+            color: ${COLORS.inkSoft};
+            border-radius: 999px;
+            padding: 8px 13px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+          }
+
+          .vn-categories button.active {
+            background: ${COLORS.forest};
+            color: white;
+            border-color: ${COLORS.forest};
+            box-shadow: 0 7px 18px rgba(47,62,46,0.16);
+          }
+
+          .vn-product-grid {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 28px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+          }
+
+          .vn-product-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid ${COLORS.line};
+            border-radius: 23px;
+            background: ${COLORS.surface};
+            box-shadow: 0 12px 30px rgba(35,41,31,0.055);
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+          }
+
+          .vn-product-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 22px 45px rgba(35,41,31,0.11);
+          }
+
+          .vn-product-image {
+            position: relative;
+            height: 265px;
+            overflow: hidden;
+            background: ${COLORS.mossLight};
+          }
+
+          .vn-product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+          }
+
+          .vn-product-card:hover .vn-product-image img { transform: scale(1.06); }
+
+          .vn-product-image::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.05), transparent 50%, rgba(33,43,32,0.23));
+            pointer-events: none;
+          }
+
+          .vn-product-badge {
+            position: absolute;
+            z-index: 2;
+            top: 13px;
+            left: 13px;
+            padding: 6px 9px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(8px);
+            color: ${COLORS.forest};
+            font-size: 9px;
+            font-weight: 800;
+          }
+
+          .vn-product-number {
+            position: absolute;
+            z-index: 2;
+            right: 14px;
+            top: 13px;
+            color: white;
+            font-family: ${FONT_DISPLAY};
+            font-size: 18px;
+            opacity: 0.9;
+          }
+
+          .vn-product-body { padding: 17px; }
+
+          .vn-product-topline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .vn-product-category {
+            color: ${COLORS.moss};
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+          }
+
+          .vn-stock { color: ${COLORS.inkSoft}; font-size: 10px; }
+          .vn-stock.out { color: ${COLORS.clay}; font-weight: 700; }
+
+          .vn-product-body h3 {
+            margin: 8px 0 6px;
+            color: ${COLORS.ink};
+            font-family: ${FONT_DISPLAY};
+            font-size: 21px;
+            line-height: 1.1;
+          }
+
+          .vn-product-body p {
+            min-height: 44px;
+            margin: 0;
+            color: ${COLORS.inkSoft};
+            font-size: 12px;
+            line-height: 1.55;
+          }
+
+          .vn-product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+          }
+
+          .vn-product-footer strong { color: ${COLORS.forest}; font-size: 16px; }
+
+          .vn-add-btn {
+            border: none;
+            border-radius: 11px;
+            background: ${COLORS.forest};
+            color: white;
+            padding: 9px 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+          }
+
+          .vn-add-btn:disabled {
+            background: ${COLORS.line};
+            color: ${COLORS.inkSoft};
+            cursor: not-allowed;
+          }
+
+          .vn-empty {
+            max-width: 600px;
+            margin: 30px auto 70px;
+            padding: 50px 25px;
+            text-align: center;
+            border: 1px dashed ${COLORS.line};
+            border-radius: 25px;
+            background: rgba(255,255,255,0.55);
+          }
+
+          .vn-empty-icon { font-size: 42px; }
+
+          .vn-empty h3 {
+            margin: 12px 0 5px;
+            color: ${COLORS.forest};
+            font-family: ${FONT_DISPLAY};
+            font-size: 25px;
+          }
+
+          .vn-empty p {
+            color: ${COLORS.inkSoft};
+            font-size: 13px;
+            margin: 0 0 18px;
+          }
+
+          .vn-bottom-banner {
+            max-width: 1124px;
+            margin: 70px auto 0;
+            padding: 0 28px 70px;
+            display: grid;
+            grid-template-columns: 0.85fr 1.15fr;
+            align-items: center;
+            gap: 36px;
+          }
+
+          .vn-bottom-art {
+            height: 230px;
+            overflow: hidden;
+            border-radius: 27px 27px 27px 70px;
+            transform: rotate(-1.5deg);
+            box-shadow: 0 20px 45px rgba(35,41,31,0.10);
+          }
+
+          .vn-bottom-art img { width: 100%; height: 100%; object-fit: cover; }
+
+          @media (max-width: 900px) {
+            .vn-hero { grid-template-columns: 1fr; padding-top: 40px; }
+            .vn-hero-copy { text-align: center; }
+            .vn-hero-copy > p { margin-left: auto; margin-right: auto; }
+            .vn-hero-actions { justify-content: center; }
+            .vn-hero-art { min-height: 400px; }
+            .vn-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .vn-bottom-banner { grid-template-columns: 1fr; }
+          }
+
+          @media (max-width: 620px) {
+            .vn-hero { padding: 32px 18px 30px; }
+            .vn-hero h1 { font-size: 48px; }
+            .vn-hero-art { min-height: 330px; }
+            .vn-art-card { width: 78%; }
+            .vn-orbit-1 { width: 270px; height: 270px; }
+            .vn-orbit-2 { width: 340px; height: 340px; }
+            .vn-float-top { right: 0; top: 12px; }
+            .vn-float-bottom { left: 0; bottom: 10px; }
+            .vn-section-head, .vn-toolbar { padding-left: 18px; padding-right: 18px; }
+            .vn-section-head h2 { font-size: 29px; }
+            .vn-stat-box { display: none; }
+            .vn-product-grid { grid-template-columns: 1fr; padding: 0 18px; }
+            .vn-product-image { height: 280px; }
+            .vn-bottom-banner { padding-left: 18px; padding-right: 18px; }
+          }
         `}
       </style>
 
@@ -983,9 +1526,9 @@ async function updateOrderStatus(id, status) {
       >
         <div
           style={{
-            maxWidth: "1000px",
+            maxWidth: "1180px",
             margin: "0 auto",
-            padding: "18px 20px",
+            padding: "16px 28px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1054,17 +1597,6 @@ async function updateOrderStatus(id, status) {
                 <ClipboardList size={16} />
               }
               label="Đơn của tôi"
-            />
-
-            <NavButton
-              active={view === "admin"}
-              onClick={() =>
-                setView("admin")
-              }
-              icon={
-                <Settings size={16} />
-              }
-              label="Quản trị"
             />
 
             <button
@@ -1382,6 +1914,19 @@ function NavButton({
   );
 }
 
+
+const PLANT_IMAGES = [
+  "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1512428813834-c702c7702b78?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=1000&q=85",
+];
+
+function getProductImage(product, index = 0) {
+  if (product?.image) return product.image;
+  return PLANT_IMAGES[index % PLANT_IMAGES.length];
+}
+
 /* =========================================================
    SHOP VIEW
 ========================================================= */
@@ -1395,332 +1940,225 @@ function ShopView({
   setCat,
   onAdd,
 }) {
+  const featured = products.slice(0, 3);
+
   return (
-    <div
-      style={{
-        maxWidth: "1000px",
-        margin: "0 auto",
-        padding: "36px 20px 60px",
-      }}
-    >
-      {/* TITLE */}
+    <div className="vn-shop">
+      <section className="vn-hero">
+        <div className="vn-hero-copy">
+          <div className="vn-pill">
+            <Sprout size={15} />
+            Vườn xanh · Giao cây tận nơi
+          </div>
 
-      <div
-        style={{
-          marginBottom: "28px",
-          textAlign: "center",
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: FONT_DISPLAY,
-            fontSize: "34px",
-            fontWeight: 600,
-            color: COLORS.forest,
-            margin: 0,
-            lineHeight: 1.15,
-          }}
-        >
-          Cây xanh cho góc nhỏ
-          của bạn
-        </h1>
+          <h1>
+            Mang một chút
+            <span> xanh </span>
+            vào góc nhỏ.
+          </h1>
 
-        <p
-          style={{
-            color: COLORS.inkSoft,
-            margin: "8px auto 0",
-            fontSize: "15px",
-            maxWidth: "480px",
-            textAlign: "center",
-            lineHeight: 1.6,
-          }}
-        >
-          {allCount} loại cây và chậu
-          đang có sẵn, chọn lọc và
-          giao tận nơi trong ngày.
-        </p>
-      </div>
+          <p>
+            Cây được chọn lọc kỹ, chậu có gu và những món nhỏ
+            giúp căn phòng trở nên dịu dàng hơn mỗi ngày.
+          </p>
 
-      {/* SEARCH */}
+          <div className="vn-hero-actions">
+            <button
+              className="vn-primary-btn"
+              onClick={() =>
+                document.getElementById("vn-product-grid")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
+            >
+              Khám phá cây
+              <span>→</span>
+            </button>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          alignItems: "center",
-          marginBottom: "22px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background:
-              COLORS.surface,
-            border: `1px solid ${COLORS.line}`,
-            borderRadius: "8px",
-            padding: "8px 12px",
-            flex: "1 1 220px",
-          }}
-        >
-          <Search
-            size={16}
-            color={COLORS.inkSoft}
-          />
-
-          <input
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            placeholder="Tìm tên cây..."
-            style={{
-              border: "none",
-              outline: "none",
-              fontSize: "14px",
-              flex: 1,
-              background:
-                "transparent",
-              fontFamily: FONT_BODY,
-            }}
-          />
+            <div className="vn-mini-note">
+              <span className="vn-dot" />
+              {allCount} sản phẩm đang có sẵn
+            </div>
+          </div>
         </div>
 
-        {/* CATEGORIES */}
+        <div className="vn-hero-art">
+          <div className="vn-art-orbit vn-orbit-1" />
+          <div className="vn-art-orbit vn-orbit-2" />
 
-        <div
-          style={{
-            display: "flex",
-            gap: "6px",
-            flexWrap: "wrap",
-          }}
-        >
+          <div className="vn-art-card">
+            <img
+              src={getProductImage(featured[0], 0)}
+              alt="Cây xanh nổi bật"
+              onError={(e) => {
+                e.currentTarget.src = PLANT_IMAGES[0];
+              }}
+            />
+            <div className="vn-art-label">
+              <span>01</span>
+              Góc xanh hôm nay
+            </div>
+          </div>
+
+          <div className="vn-floating-card vn-float-top">
+            <span className="vn-float-icon">☀️</span>
+            <div>
+              <strong>Nắng nhẹ</strong>
+              <small>Hợp phòng sáng</small>
+            </div>
+          </div>
+
+          <div className="vn-floating-card vn-float-bottom">
+            <span className="vn-float-icon">♡</span>
+            <div>
+              <strong>Chọn cây có gu</strong>
+              <small>Đẹp · dễ chăm · bền</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="vn-section-head">
+        <div>
+          <span className="vn-eyebrow">CURATED COLLECTION</span>
+          <h2>Cây xinh cho từng khoảng nhỏ</h2>
+          <p>{allCount} lựa chọn được sắp xếp để bạn tìm cây thật nhanh.</p>
+        </div>
+
+        <div className="vn-stat-box">
+          <span>{allCount}</span>
+          <small>mẫu đang bán</small>
+        </div>
+      </section>
+
+      <section className="vn-toolbar">
+        <div className="vn-search">
+          <Search size={18} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm cây, chậu, phụ kiện..."
+          />
+          {search && (
+            <button
+              className="vn-clear-search"
+              onClick={() => setSearch("")}
+              aria-label="Xóa tìm kiếm"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        <div className="vn-categories">
           {CATS.map((category) => (
             <button
               key={category}
-              onClick={() =>
-                setCat(category)
-              }
-              style={{
-                border: `1px solid ${
-                  cat === category
-                    ? COLORS.forest
-                    : COLORS.line
-                }`,
-                background:
-                  cat === category
-                    ? COLORS.forest
-                    : COLORS.surface,
-                color:
-                  cat === category
-                    ? "white"
-                    : COLORS.inkSoft,
-                borderRadius: "999px",
-                padding: "7px 14px",
-                fontSize: "13px",
-                cursor: "pointer",
-              }}
+              className={cat === category ? "active" : ""}
+              onClick={() => setCat(category)}
             >
               {category}
             </button>
           ))}
         </div>
-      </div>
-
-      {/* PRODUCTS */}
+      </section>
 
       {products.length === 0 ? (
-        <div
-          style={{
-            padding: "60px 0",
-            textAlign: "center",
-            color: COLORS.inkSoft,
-          }}
-        >
-          Không tìm thấy sản
-          phẩm phù hợp.
+        <div className="vn-empty">
+          <div className="vn-empty-icon">🌿</div>
+          <h3>Chưa tìm thấy cây phù hợp</h3>
+          <p>Thử đổi từ khóa hoặc chọn “Tất cả”.</p>
+          <button
+            className="vn-primary-btn"
+            onClick={() => {
+              setSearch("");
+              setCat("Tất cả");
+            }}
+          >
+            Xem tất cả
+          </button>
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fill, minmax(220px, 1fr))",
-            gap: "18px",
-          }}
-        >
-          {products.map((product) => {
-            const stock = Number(
-              product.stock
-            );
+        <div id="vn-product-grid" className="vn-product-grid">
+          {products.map((product, index) => {
+            const stock = Number(product.stock ?? product.quantity ?? 0);
+            const image = getProductImage(product, index);
 
             return (
-              <div
-                key={product.id}
-                style={{
-                  background:
-                    COLORS.surface,
-                  border: `1px solid ${COLORS.line}`,
-                  borderRadius: "12px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection:
-                    "column",
-                }}
-              >
-                {/* ICON */}
+              <article className="vn-product-card" key={product.id}>
+                <div className="vn-product-image">
+                  <img
+                    src={image}
+                    alt={product.name}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.src = PLANT_IMAGES[index % PLANT_IMAGES.length];
+                    }}
+                  />
 
-                <div
-                  style={{
-                    background:
-                      COLORS.mossLight,
-                    height: "120px",
-                    display: "flex",
-                    alignItems:
-                      "center",
-                    justifyContent:
-                      "center",
-                    fontSize: "48px",
-                  }}
-                >
-                  {product.icon ||
-                    "🌿"}
+                  <div className="vn-product-badge">{product.category}</div>
+                  <div className="vn-product-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
                 </div>
 
-                {/* INFO */}
-
-                <div
-                  style={{
-                    padding: "14px",
-                    display: "flex",
-                    flexDirection:
-                      "column",
-                    gap: "6px",
-                    flex: 1,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: COLORS.moss,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {product.category}
-                  </span>
-
-                  <h3
-                    style={{
-                      fontFamily:
-                        FONT_DISPLAY,
-                      fontSize: "17px",
-                      margin: 0,
-                      color:
-                        COLORS.ink,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {product.name}
-                  </h3>
-
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color:
-                        COLORS.inkSoft,
-                      margin: 0,
-                      lineHeight: 1.4,
-                      flex: 1,
-                    }}
-                  >
-                    {product.desc ||
-                      "Sản phẩm xanh cho không gian của bạn."}
-                  </p>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems:
-                        "center",
-                      justifyContent:
-                        "space-between",
-                      marginTop: "8px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        color:
-                          COLORS.forest,
-                        fontSize:
-                          "15px",
-                      }}
-                    >
-                      {formatVND(
-                        product.price
-                      )}
+                <div className="vn-product-body">
+                  <div className="vn-product-topline">
+                    <span className="vn-product-category">
+                      {product.category}
                     </span>
-
-                    <span
-                      style={{
-                        fontSize:
-                          "12px",
-                        color:
-                          stock > 0
-                            ? COLORS.inkSoft
-                            : COLORS.clay,
-                      }}
-                    >
-                      {stock > 0
-                        ? `Còn ${stock}`
-                        : "Hết hàng"}
+                    <span className={stock > 0 ? "vn-stock" : "vn-stock out"}>
+                      {stock > 0 ? `Còn ${stock}` : "Hết hàng"}
                     </span>
                   </div>
 
-                  <button
-                    onClick={() =>
-                      onAdd(
-                        product.id
-                      )
-                    }
-                    disabled={
-                      stock <= 0
-                    }
-                    style={{
-                      marginTop: "6px",
-                      background:
-                        stock <= 0
-                          ? COLORS.line
-                          : COLORS.forest,
-                      color:
-                        stock <= 0
-                          ? COLORS.inkSoft
-                          : "white",
-                      border: "none",
-                      borderRadius:
-                        "8px",
-                      padding: "9px",
-                      fontSize:
-                        "13px",
-                      fontWeight: 500,
-                      cursor:
-                        stock <= 0
-                          ? "not-allowed"
-                          : "pointer",
-                    }}
-                  >
-                    {stock <= 0
-                      ? "Hết hàng"
-                      : "Thêm vào giỏ"}
-                  </button>
+                  <h3>{product.name}</h3>
+
+                  <p>
+                    {product.desc ||
+                      "Một lựa chọn xanh xinh xắn cho không gian của bạn."}
+                  </p>
+
+                  <div className="vn-product-footer">
+                    <strong>{formatVND(product.price)}</strong>
+
+                    <button
+                      className="vn-add-btn"
+                      disabled={stock <= 0}
+                      onClick={() => onAdd(product.id)}
+                    >
+                      <Plus size={17} />
+                      {stock <= 0 ? "Hết hàng" : "Thêm giỏ"}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
       )}
+
+      <section className="vn-bottom-banner">
+        <div className="vn-bottom-art">
+          <img
+            src={getProductImage(featured[1], 1)}
+            alt="Cây trang trí"
+            onError={(e) => {
+              e.currentTarget.src = PLANT_IMAGES[1];
+            }}
+          />
+        </div>
+
+        <div>
+          <span className="vn-eyebrow">A LITTLE GREEN</span>
+          <h2>Không cần nhà thật lớn để có một khu vườn thật đẹp.</h2>
+          <p>
+            Chọn một chậu cây nhỏ, đặt cạnh cửa sổ và để căn phòng tự kể
+            câu chuyện của mình.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1728,7 +2166,6 @@ function ShopView({
 /* =========================================================
    CART DRAWER
 ========================================================= */
-
 function CartDrawer({
   step,
   items,
