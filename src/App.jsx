@@ -233,7 +233,13 @@ function App() {
     <div className="announcement"><Leaf size={14} /> Chào bạn đến với Vườn Nhỏ · Một góc xanh, một ngày an yên</div>
     <header className="site-header"><div className="header-inner">
       <button className="brand" onClick={() => setView("shop")} aria-label="Về trang cửa hàng"><span className="brand-mark"><Sprout size={21} strokeWidth={2.2} /></span><span><strong>Vườn Nhỏ</strong><small>plant studio · by Yến Duy</small></span></button>
-      <nav className="main-nav"><NavButton active={view === "shop"} onClick={() => setView("shop")} icon={<ShoppingBag size={16} />} label="Cửa hàng" /><NavButton active={view === "orders"} onClick={() => setView("orders")} icon={<ClipboardList size={16} />} label="Đơn của tôi" /><NavButton active={view === "admin"} onClick={() => setView("admin")} icon={<Settings2 size={16} />} label="Quản trị" /></nav>
+      <nav className="main-nav">
+        <NavButton active={view === "shop"} onClick={() => setView("shop")} icon={<ShoppingBag size={16} />} label="Cửa hàng" />
+        <NavButton active={view === "orders"} onClick={() => setView("orders")} icon={<ClipboardList size={16} />} label="Đơn của tôi" />
+        {currentUser?.role === "admin" && (
+          <NavButton active={view === "admin"} onClick={() => setView("admin")} icon={<Settings2 size={16} />} label="Quản trị" />
+        )}
+      </nav>
       <div className="header-actions">
         {currentUser ? (
           <div className="auth-user-badge">
@@ -274,7 +280,7 @@ function App() {
     </div></header>
     {view === "shop" && <GardenShop products={filteredProducts} allCount={products.length} search={search} setSearch={setSearch} category={category} setCategory={setCategory} onAdd={addToCart} />}
     {view === "orders" && <OrdersView orders={myOrders} onBrowse={() => setView("shop")} />}
-    {view === "admin" && <AdminView authed={adminAuthed} password={password} setPassword={setPassword} passwordError={passwordError} onLogin={loginAdmin} products={products} orders={orders} onDelete={deleteProduct} onEdit={(product) => { setEditingProduct(product); setShowProductForm(true); }} onAdd={() => { setEditingProduct(null); setShowProductForm(true); }} onStatusChange={updateOrderStatus} />}
+    {view === "admin" && currentUser?.role === "admin" && <AdminView authed={adminAuthed} password={password} setPassword={setPassword} passwordError={passwordError} onLogin={loginAdmin} products={products} orders={orders} onDelete={deleteProduct} onEdit={(product) => { setEditingProduct(product); setShowProductForm(true); }} onAdd={() => { setEditingProduct(null); setShowProductForm(true); }} onStatusChange={updateOrderStatus} />}
     {showProductForm && <ProductForm initial={editingProduct} onCancel={() => { setShowProductForm(false); setEditingProduct(null); }} onSave={saveProduct} />}
     {cartOpen && <CartDrawer step={checkoutStep} items={cartItems} total={cartTotal} buyer={buyer} setBuyer={setBuyer} onClose={() => checkoutStep === "done" ? resetCheckout() : setCartOpen(false)} onChangeQty={changeQty} onRemove={removeFromCart} onCheckout={() => setCheckoutStep("form")} onBack={() => setCheckoutStep("cart")} onPlaceOrder={placeOrder} onDone={resetCheckout} />}
     <AuthModal
