@@ -8,12 +8,10 @@ import {
   X,
   Search,
   ClipboardList,
-  Settings,
   Check,
   Sprout,
   Store,
   Lock,
-  RefreshCw,
 } from "lucide-react";
 
 /* =========================================================
@@ -338,6 +336,8 @@ function App() {
     }
 
     loadData();
+    // Legacy duplicate app: this data bootstrap intentionally runs once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* =======================================================
@@ -1952,9 +1952,8 @@ function ShopView({
           </div>
 
           <h1>
-            Mang một chút
-            <span> xanh </span>
-            vào góc nhỏ.
+            Góc nhỏ
+            <span> an yên </span>
           </h1>
 
           <p>
@@ -2026,10 +2025,6 @@ function ShopView({
           <p>{allCount} lựa chọn được sắp xếp để bạn tìm cây thật nhanh.</p>
         </div>
 
-        <div className="vn-stat-box">
-          <span>{allCount}</span>
-          <small>mẫu đang bán</small>
-        </div>
       </section>
 
       <section className="vn-toolbar">
@@ -3123,7 +3118,6 @@ function AdminView({
   onEdit,
   onAddNew,
   onStatusChange,
-  onDeleteOrder,
 }) {
   if (!authed) {
     return (
