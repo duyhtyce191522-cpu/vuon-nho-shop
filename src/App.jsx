@@ -19,6 +19,8 @@ import {
 
 import GardenShop from './components/GardenShop';
 import ProductArt from './components/ProductArt';
+import AuthModal from './components/AuthModal';
+import { LogIn, LogOut, User, UserPlus } from "lucide-react";
 import { normalizeName } from './lib/productVisual';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -50,7 +52,57 @@ function App() {
   });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
-  const [adminAuthed, setAdminAuthed] = useState(false);
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vuon-nho-user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState("login");
+
+  const [adminAuthed, setAdminAuthed] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vuon-nho-user");
+      const user = saved ? JSON.parse(saved) : null;
+      return user?.role === "admin";
+    } catch {
+      return false;
+    }
+  });
+
+  function handleLoginSuccess(user, token) {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem("vuon-nho-user", JSON.stringify(user));
+      if (token) localStorage.setItem("vuon-nho-token", token);
+    } catch {}
+    if (user.role === "admin") {
+      setAdminAuthed(true);
+    }
+    if (user.full_name || user.phone || user.address) {
+      setBuyer((prev) => ({
+        name: user.full_name || user.username || prev.name,
+        phone: user.phone || prev.phone,
+        address: user.address || prev.address,
+      }));
+    }
+    notify("Chào mừng " + (user.full_name || user.username) + " đến với Vườn Nhỏ! 🌱");
+  }
+
+  function handleLogout() {
+    setCurrentUser(null);
+    setAdminAuthed(false);
+    try {
+      localStorage.removeItem("vuon-nho-user");
+      localStorage.removeItem("vuon-nho-token");
+    } catch {}
+    if (view === "admin") setView("shop");
+    notify("Đã đăng xuất tài khoản");
+  }
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -132,7 +184,7 @@ function App() {
   async function placeOrder() {
     if (!buyer.name.trim() || !buyer.phone.trim() || !buyer.address.trim()) return notify("Bạn điền đủ thông tin nhận cây nhé");
     if (!cartItems.length) return notify("Giỏ hàng đang trống");
-    const order = { items: cartItems.map((item) => ({ productId: item.id, name: item.name, price: item.price, qty: item.qty })), total: cartTotal, buyer: { name: buyer.name.trim(), phone: buyer.phone.trim(), address: buyer.address.trim() } };
+    const order = { userId: currentUser?.id || null, items: cartItems.map((item) => ({ productId: item.id, name: item.name, price: item.price, qty: item.qty })), total: cartTotal, buyer: { name: buyer.name.trim(), phone: buyer.phone.trim(), address: buyer.address.trim() } };
     try {
       const response = await fetch(`${API_URL}/api/orders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) });
       const data = await response.json().catch(() => null);
@@ -182,13 +234,56 @@ function App() {
     <header className="site-header"><div className="header-inner">
       <button className="brand" onClick={() => setView("shop")} aria-label="Về trang cửa hàng"><span className="brand-mark"><Sprout size={21} strokeWidth={2.2} /></span><span><strong>Vườn Nhỏ</strong><small>plant studio · by Yến Duy</small></span></button>
       <nav className="main-nav"><NavButton active={view === "shop"} onClick={() => setView("shop")} icon={<ShoppingBag size={16} />} label="Cửa hàng" /><NavButton active={view === "orders"} onClick={() => setView("orders")} icon={<ClipboardList size={16} />} label="Đơn của tôi" /><NavButton active={view === "admin"} onClick={() => setView("admin")} icon={<Settings2 size={16} />} label="Quản trị" /></nav>
-      <button aria-label={`Giỏ hàng (${cartCount} sản phẩm)`} className="cart-button" onClick={() => { setCartOpen(true); setCheckoutStep("cart"); }}><ShoppingCart size={18} /><span>Giỏ hàng</span>{cartCount > 0 && <b>{cartCount}</b>}</button>
+      <div className="header-actions">
+        {currentUser ? (
+          <div className="auth-user-badge">
+            <span className="auth-avatar">{currentUser.role === "admin" ? "🛡️" : "🌱"}</span>
+            <span className="auth-name" title={currentUser.full_name || currentUser.username}>
+              {currentUser.full_name || currentUser.username}
+            </span>
+            {currentUser.role === "admin" && <span className="auth-role-tag">Admin</span>}
+            <button type="button" className="auth-logout-btn" onClick={handleLogout} title="Đăng xuất">
+              <LogOut size={13} />
+            </button>
+          </div>
+        ) : (
+          <div className="auth-buttons-group">
+            <button
+              type="button"
+              className="auth-btn-login"
+              onClick={() => { setAuthModalTab("login"); setAuthModalOpen(true); }}
+            >
+              <LogIn size={15} />
+              <span>Đăng nhập</span>
+            </button>
+            <button
+              type="button"
+              className="auth-btn-register"
+              onClick={() => { setAuthModalTab("register"); setAuthModalOpen(true); }}
+            >
+              <UserPlus size={15} />
+              <span>Đăng ký</span>
+            </button>
+          </div>
+        )}
+
+        <button aria-label={`Giỏ hàng (${cartCount} sản phẩm)`} className="cart-button" onClick={() => { setCartOpen(true); setCheckoutStep("cart"); }}>
+          <ShoppingCart size={18} /><span className="cart-text">Giỏ hàng</span>{cartCount > 0 && <b>{cartCount}</b>}
+        </button>
+      </div>
     </div></header>
     {view === "shop" && <GardenShop products={filteredProducts} allCount={products.length} search={search} setSearch={setSearch} category={category} setCategory={setCategory} onAdd={addToCart} />}
     {view === "orders" && <OrdersView orders={myOrders} onBrowse={() => setView("shop")} />}
     {view === "admin" && <AdminView authed={adminAuthed} password={password} setPassword={setPassword} passwordError={passwordError} onLogin={loginAdmin} products={products} orders={orders} onDelete={deleteProduct} onEdit={(product) => { setEditingProduct(product); setShowProductForm(true); }} onAdd={() => { setEditingProduct(null); setShowProductForm(true); }} onStatusChange={updateOrderStatus} />}
     {showProductForm && <ProductForm initial={editingProduct} onCancel={() => { setShowProductForm(false); setEditingProduct(null); }} onSave={saveProduct} />}
     {cartOpen && <CartDrawer step={checkoutStep} items={cartItems} total={cartTotal} buyer={buyer} setBuyer={setBuyer} onClose={() => checkoutStep === "done" ? resetCheckout() : setCartOpen(false)} onChangeQty={changeQty} onRemove={removeFromCart} onCheckout={() => setCheckoutStep("form")} onBack={() => setCheckoutStep("cart")} onPlaceOrder={placeOrder} onDone={resetCheckout} />}
+    <AuthModal
+      isOpen={authModalOpen}
+      initialTab={authModalTab}
+      onClose={() => setAuthModalOpen(false)}
+      onLoginSuccess={handleLoginSuccess}
+      apiUrl={API_URL}
+    />
     {toast && <div className="toast" role="status" aria-live="polite"><Check size={16} /> {toast}</div>}
   </div>;
 }
