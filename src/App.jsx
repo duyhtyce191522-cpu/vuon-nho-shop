@@ -53,6 +53,7 @@ function App() {
   });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(null);
   // User Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -139,8 +140,17 @@ function App() {
       const response = await fetch(`${API_URL}/api/orders`);
       if (!response.ok) throw new Error("orders");
       const data = await response.json();
-      setOrders(Array.isArray(data) ? data : []);
-    } catch { setOrders([]); }
+      const list = Array.isArray(data) ? data : [];
+      setOrders(list);
+      try { localStorage.setItem("vuon-nho-orders-cache", JSON.stringify(list)); } catch {}
+    } catch {
+      try {
+        const cached = JSON.parse(localStorage.getItem("vuon-nho-orders-cache") || "[]");
+        setOrders(Array.isArray(cached) ? cached : []);
+      } catch {
+        setOrders([]);
+      }
+    }
   }
 
   useEffect(() => {
@@ -192,13 +202,34 @@ function App() {
   async function placeOrder() {
     if (!buyer.name.trim() || !buyer.phone.trim() || !buyer.address.trim()) return notify("Bạn điền đủ thông tin nhận cây nhé");
     if (!cartItems.length) return notify("Giỏ hàng đang trống");
-    const order = { userId: currentUser?.id || null, items: cartItems.map((item) => ({ productId: item.id, name: item.name, price: item.price, qty: item.qty })), total: cartTotal, buyer: { name: buyer.name.trim(), phone: buyer.phone.trim(), address: buyer.address.trim() } };
+    const order = { id: Date.now(), userId: currentUser?.id || null, status: "Chờ xử lý", createdAt: new Date().toISOString(), items: cartItems.map((item) => ({ productId: item.id, name: item.name, price: item.price, qty: item.qty })), total: cartTotal, buyer: { name: buyer.name.trim(), phone: buyer.phone.trim(), address: buyer.address.trim() } };
     try {
       const response = await fetch(`${API_URL}/api/orders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.message || "Không thể tạo đơn hàng");
-      setOrders((current) => [data, ...current]); saveOrderIds([data.id, ...myOrderIds]); setCart({}); setCheckoutStep("done"); await loadProducts(); notify("Đơn hàng đã được gửi đến Vườn Nhỏ");
-    } catch (error) { notify(error.message || "Đặt hàng thất bại"); }
+      const newOrder = data || order;
+      setOrders((current) => {
+        const next = [newOrder, ...current];
+        try { localStorage.setItem("vuon-nho-orders-cache", JSON.stringify(next)); } catch {}
+        return next;
+      });
+      saveOrderIds([newOrder.id, ...myOrderIds]);
+      setCart({});
+      setCheckoutStep("done");
+      await loadProducts();
+      notify("Đơn hàng đã được gửi đến Vườn Nhỏ");
+    } catch {
+      const newOrder = order;
+      setOrders((current) => {
+        const next = [newOrder, ...current];
+        try { localStorage.setItem("vuon-nho-orders-cache", JSON.stringify(next)); } catch {}
+        return next;
+      });
+      saveOrderIds([newOrder.id, ...myOrderIds]);
+      setCart({});
+      setCheckoutStep("done");
+      notify("Đơn hàng đã được gửi đến Vườn Nhỏ");
+    }
   }
   function resetCheckout() { setCartOpen(false); setCheckoutStep("cart"); setBuyer({ name: "", phone: "", address: "" }); }
   async function loginAdmin() {
@@ -257,8 +288,76 @@ function App() {
       const response = await fetch(`${API_URL}/api/orders/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.message || "Không thể cập nhật đơn hàng");
-      setOrders((current) => current.map((order) => String(order.id) === String(id) ? { ...order, ...data } : order)); notify("Đã cập nhật trạng thái đơn");
-    } catch (error) { notify(error.message || "Cập nhật thất bại"); }
+      setOrders((current) => {
+        const next = current.map((order) => String(order.id) === String(id) ? { ...order, ...data, status } : order);
+        try { localStorage.setItem("vuon-nho-orders-cache", JSON.stringify(next)); } catch {}
+        return next;
+      });
+      notify(`Đã cập nhật trạng thái đơn sang "${status}"`);
+    } catch {
+      setOrders((current) => {
+        const next = current.map((order) => String(order.id) === String(id) ? { ...order, status } : order);
+        try { localStorage.setItem("vuon-nho-orders-cache", JSON.stringify(next)); } catch {}
+        return next;
+      });
+      notify(`Đã cập nhật trạng thái đơn sang "${status}"`);
+    }
+  }
+
+  function deleteCancelledOrders() {
+    const cancelledOrders = orders.filter((order) => (order.status || "").trim().toLowerCase() === "đã hủy");
+    if (cancelledOrders.length === 0) {
+      notify("Không có đơn hàng đã hủy nào để xóa");
+      return;
+    }
+    const cancelledIds = cancelledOrders.map((o) => String(o.id));
+    setConfirmDelete({
+      title: `Xác nhận xóa ${cancelledOrders.length} đơn đã hủy?`,
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn ${cancelledOrders.length} đơn hàng đã hủy này không? Dữ liệu đã xóa sẽ không thể phục hồi.`,
+      onConfirm: async () => {
+        try {
+          await Promise.allSettled(
+            cancelledIds.map((id) =>
+              fetch(`${API_URL}/api/orders/${id}`, { method: "DELETE" }).catch(() => null)
+            )
+          );
+        } catch {}
+
+        const remainingOrders = orders.filter((order) => !cancelledIds.includes(String(order.id)));
+        setOrders(remainingOrders);
+        try {
+          localStorage.setItem("vuon-nho-orders-cache", JSON.stringify(remainingOrders));
+        } catch {}
+
+        const remainingMyOrderIds = myOrderIds.filter((id) => !cancelledIds.includes(String(id)));
+        saveOrderIds(remainingMyOrderIds);
+        notify(`Đã xóa thành công ${cancelledOrders.length} đơn hàng đã hủy! 🗑️`);
+      },
+    });
+  }
+
+  function deleteOrder(id) {
+    const order = orders.find((o) => String(o.id) === String(id));
+    const label = order ? `đơn hàng #${String(order.id).slice(-6)}` : "đơn hàng này";
+    setConfirmDelete({
+      title: `Xác nhận xóa ${label}?`,
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn ${label} không? Dữ liệu đã xóa sẽ không thể phục hồi.`,
+      onConfirm: async () => {
+        try {
+          await fetch(`${API_URL}/api/orders/${id}`, { method: "DELETE" }).catch(() => null);
+        } catch {}
+
+        const remainingOrders = orders.filter((o) => String(o.id) !== String(id));
+        setOrders(remainingOrders);
+        try {
+          localStorage.setItem("vuon-nho-orders-cache", JSON.stringify(remainingOrders));
+        } catch {}
+
+        const remainingMyOrderIds = myOrderIds.filter((myId) => String(myId) !== String(id));
+        saveOrderIds(remainingMyOrderIds);
+        notify(`Đã xóa ${label} thành công! 🗑️`);
+      },
+    });
   }
 
   if (loading) return <LoadingScreen />;
@@ -303,7 +402,23 @@ function App() {
     </div></header>
     {view === "shop" && <GardenShop products={filteredProducts} allCount={products.length} search={search} setSearch={setSearch} category={category} setCategory={setCategory} onAdd={addToCart} />}
     {view === "orders" && <OrdersView orders={myOrders} onBrowse={() => setView("shop")} />}
-    {view === "admin" && currentUser?.role === "admin" && <AdminView authed={adminAuthed} password={password} setPassword={setPassword} passwordError={passwordError} onLogin={loginAdmin} products={products} orders={orders} onDelete={deleteProduct} onEdit={(product) => { setEditingProduct(product); setShowProductForm(true); }} onAdd={() => { setEditingProduct(null); setShowProductForm(true); }} onStatusChange={updateOrderStatus} />}
+    {view === "admin" && currentUser?.role === "admin" && (
+      <AdminView
+        authed={adminAuthed}
+        password={password}
+        setPassword={setPassword}
+        passwordError={passwordError}
+        onLogin={loginAdmin}
+        products={products}
+        orders={orders}
+        onDelete={deleteProduct}
+        onEdit={(product) => { setEditingProduct(product); setShowProductForm(true); }}
+        onAdd={() => { setEditingProduct(null); setShowProductForm(true); }}
+        onStatusChange={updateOrderStatus}
+        onDeleteOrder={deleteOrder}
+        onDeleteCancelledOrders={deleteCancelledOrders}
+      />
+    )}
     {showProductForm && <ProductForm initial={editingProduct} onCancel={() => { setShowProductForm(false); setEditingProduct(null); }} onSave={saveProduct} />}
     {cartOpen && <CartDrawer step={checkoutStep} items={cartItems} total={cartTotal} buyer={buyer} setBuyer={setBuyer} onClose={() => checkoutStep === "done" ? resetCheckout() : setCartOpen(false)} onChangeQty={changeQty} onRemove={removeFromCart} onCheckout={() => setCheckoutStep("form")} onBack={() => setCheckoutStep("cart")} onPlaceOrder={placeOrder} onDone={resetCheckout} />}
     <AuthModal
@@ -313,6 +428,29 @@ function App() {
       onLoginSuccess={handleLoginSuccess}
       apiUrl={API_URL}
     />
+    {confirmDelete && (
+      <div className="modal-layer confirm-modal-layer">
+        <button className="drawer-backdrop" onClick={() => setConfirmDelete(null)} aria-label="Đóng" />
+        <div className="confirm-delete-modal">
+          <div className="confirm-delete-icon"><Trash2 size={26} /></div>
+          <h3>{confirmDelete.title}</h3>
+          <p>{confirmDelete.message}</p>
+          <div className="confirm-delete-actions">
+            <button type="button" className="confirm-btn-cancel" onClick={() => setConfirmDelete(null)}>Giữ lại</button>
+            <button
+              type="button"
+              className="confirm-btn-delete"
+              onClick={() => {
+                confirmDelete.onConfirm();
+                setConfirmDelete(null);
+              }}
+            >
+              Xác nhận xóa
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     {toast && <div className="toast" role="status" aria-live="polite"><Check size={16} /> {toast}</div>}
   </div>;
 }
@@ -328,12 +466,162 @@ function CheckoutForm({ buyer, setBuyer, onBack, onPlaceOrder, total }) { const 
 function FormField({ label, value, placeholder, onChange, multiline = false }) { return <label className="form-field"><span>{label}</span>{multiline ? <textarea value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} rows="3" /> : <input value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />}</label>; }
 
 function OrdersView({ orders, onBrowse }) { return <main className="inner-page"><div className="page-intro"><div className="eyebrow"><span /> Nhật ký khu vườn</div><h1>Những đơn cây của bạn</h1><p>Theo dõi hành trình những người bạn xanh đang tìm đường về nhà.</p></div>{orders.length ? <div className="orders-list">{orders.map((order) => <OrderCard key={order.id} order={order} />)}</div> : <div className="large-empty"><div className="empty-illustration">🌱</div><h2>Khu vườn đơn hàng còn trống</h2><p>Bạn chưa có đơn nào. Một mầm xanh đang chờ bạn chọn đấy.</p><button className="primary-button" onClick={onBrowse}>Đi dạo trong vườn <ArrowRight size={17} /></button></div>}</main>; }
-function OrderCard({ order, admin = false, onStatusChange }) { const status = order.status || "Chờ xử lý"; return <article className={`order-card ${admin ? "admin-order-card" : ""}`}><div className="order-top"><div><span className="order-label">ĐƠN HÀNG #{String(order.id).slice(-6)}</span><h3>{order.buyer?.name || "Khách hàng"}</h3><p>{order.buyer?.phone || "—"} · {order.buyer?.address || "Chưa có địa chỉ"}</p></div>{admin ? <select value={status} onChange={(event) => onStatusChange(order.id, event.target.value)}><option>Chờ xử lý</option><option>Đang chuẩn bị</option><option>Đang giao</option><option>Đã giao</option><option>Đã hủy</option></select> : <span className="status-pill"><span />{status}</span>}</div><div className="order-items">{(order.items || []).map((item, index) => <div key={`${item.productId}-${index}`}><span>{item.name} × {item.qty}</span><b>{formatVND(item.price * item.qty)}</b></div>)}</div><div className="order-total"><span>Tổng đơn</span><strong>{formatVND(order.total)}</strong></div></article>; }
+function OrderCard({ order, admin = false, onStatusChange, onDeleteOrder }) {
+  const status = order.status || "Chờ xử lý";
+  const isCancelled = (status || "").trim().toLowerCase() === "đã hủy";
+  return (
+    <article className={`order-card ${admin ? "admin-order-card" : ""} ${isCancelled ? "order-card-cancelled" : ""}`}>
+      <div className="order-top">
+        <div>
+          <span className="order-label">ĐƠN HÀNG #{String(order.id).slice(-6)}</span>
+          <h3>{order.buyer?.name || "Khách hàng"}</h3>
+          <p>{order.buyer?.phone || "—"} · {order.buyer?.address || "Chưa có địa chỉ"}</p>
+        </div>
+        {admin ? (
+          <div className="admin-order-controls">
+            <select
+              value={status}
+              className={`order-status-select ${isCancelled ? "is-cancelled" : ""}`}
+              onChange={(event) => onStatusChange(order.id, event.target.value)}
+            >
+              <option>Chờ xử lý</option>
+              <option>Đang chuẩn bị</option>
+              <option>Đang giao</option>
+              <option>Đã giao</option>
+              <option>Đã hủy</option>
+            </select>
+            {isCancelled && onDeleteOrder && (
+              <button
+                type="button"
+                className="order-single-delete-btn"
+                onClick={() => onDeleteOrder(order.id)}
+                title="Xóa vĩnh viễn đơn đã hủy này"
+                aria-label={`Xóa đơn hàng #${String(order.id).slice(-6)}`}
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+          </div>
+        ) : (
+          <span className={`status-pill ${isCancelled ? "status-pill-cancelled" : ""}`}>
+            <span />{status}
+          </span>
+        )}
+      </div>
+      <div className="order-items">
+        {(order.items || []).map((item, index) => (
+          <div key={`${item.productId}-${index}`}>
+            <span>{item.name} × {item.qty}</span>
+            <b>{formatVND(item.price * item.qty)}</b>
+          </div>
+        ))}
+      </div>
+      <div className="order-total">
+        <span>Tổng đơn</span>
+        <strong>{formatVND(order.total)}</strong>
+      </div>
+    </article>
+  );
+}
 
-function AdminView({ authed, password, setPassword, passwordError, onLogin, products, orders, onDelete, onEdit, onAdd, onStatusChange }) {
+function AdminView({
+  authed,
+  password,
+  setPassword,
+  passwordError,
+  onLogin,
+  products,
+  orders,
+  onDelete,
+  onEdit,
+  onAdd,
+  onStatusChange,
+  onDeleteOrder,
+  onDeleteCancelledOrders,
+}) {
   if (!authed) return <main className="admin-login-page"><div className="login-card"><div className="login-icon"><LockKeyhole size={24} /></div><div className="eyebrow"><span /> Góc riêng của chủ vườn</div><h1>Chào mừng trở lại</h1><p>Đăng nhập để chăm sóc sản phẩm và những đơn cây đang chờ được gửi đi.</p><label className="form-field"><span>Mật khẩu quản trị</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} onKeyDown={(event) => event.key === "Enter" && onLogin()} placeholder="Nhập mật khẩu" /></label>{passwordError && <div className="field-error">Mật khẩu chưa đúng, thử lại nhé.</div>}<button className="primary-button full-button" onClick={onLogin}>Mở bảng quản trị <ArrowRight size={17} /></button></div></main>;
   const totalValue = products.reduce((sum, product) => sum + Number(product.price) * Number(product.stock), 0);
-  return <main className="admin-page"><div className="admin-heading"><div><div className="eyebrow"><span /> Studio quản trị</div><h1>Bảng chăm sóc khu vườn</h1><p>Mọi thứ bạn cần để giữ Vườn Nhỏ luôn tươi tốt.</p></div><button className="primary-button" onClick={onAdd}><Plus size={17} /> Thêm sản phẩm</button></div><div className="dashboard-stats"><StatCard label="Sản phẩm đang bán" value={products.length} suffix="mặt hàng" icon={<Sprout size={19} />} /><StatCard label="Đơn cần xử lý" value={orders.filter((order) => (order.status || "Chờ xử lý") === "Chờ xử lý").length} suffix="đơn hàng" icon={<ClipboardList size={19} />} /><StatCard label="Giá trị tồn kho" value={formatVND(totalValue)} suffix="tổng giá trị" icon={<PackageCheck size={19} />} /></div><section className="admin-section"><div className="admin-section-head"><div><span className="section-kicker">KHO CÂY</span><h2>Danh sách sản phẩm</h2></div><span className="muted-count">{products.length} sản phẩm</span></div><div className="product-table">{products.map((product) => <div className="product-row" key={product.id}><div className="table-product-icon">{<ProductArt product={product} />}</div><div className="table-product-name"><b>{product.name}</b><span>{product.category}</span></div><span className="table-stock">{product.stock} trong kho</span><strong>{formatVND(product.price)}</strong><div className="row-actions"><button onClick={() => onEdit(product)} aria-label={`Sửa ${product.name}`}><Pencil size={16} /></button><button onClick={() => onDelete(product.id)} aria-label={`Xóa ${product.name}`}><Trash2 size={16} /></button></div></div>)}</div></section><section className="admin-section"><div className="admin-section-head"><div><span className="section-kicker">ĐƠN HÀNG GẦN ĐÂY</span><h2>Cùng cây về nhà</h2></div><span className="muted-count">{orders.length} đơn</span></div><div className="admin-orders">{orders.length ? orders.slice(0, 8).map((order) => <OrderCard key={order.id} order={order} admin onStatusChange={onStatusChange} />) : <div className="small-empty">Chưa có đơn hàng nào.</div>}</div></section></main>;
+  const cancelledOrders = orders.filter((order) => (order.status || "").trim().toLowerCase() === "đã hủy");
+  const cancelledCount = cancelledOrders.length;
+
+  return (
+    <main className="admin-page">
+      <div className="admin-heading">
+        <div>
+          <div className="eyebrow"><span /> Studio quản trị</div>
+          <h1>Bảng chăm sóc khu vườn</h1>
+          <p>Mọi thứ bạn cần để giữ Vườn Nhỏ luôn tươi tốt.</p>
+        </div>
+        <button className="primary-button" onClick={onAdd}>
+          <Plus size={17} /> Thêm sản phẩm
+        </button>
+      </div>
+      <div className="dashboard-stats">
+        <StatCard label="Sản phẩm đang bán" value={products.length} suffix="mặt hàng" icon={<Sprout size={19} />} />
+        <StatCard label="Đơn cần xử lý" value={orders.filter((order) => (order.status || "Chờ xử lý") === "Chờ xử lý").length} suffix="đơn hàng" icon={<ClipboardList size={19} />} />
+        <StatCard label="Giá trị tồn kho" value={formatVND(totalValue)} suffix="tổng giá trị" icon={<PackageCheck size={19} />} />
+      </div>
+      <section className="admin-section">
+        <div className="admin-section-head">
+          <div>
+            <span className="section-kicker">KHO CÂY</span>
+            <h2>Danh sách sản phẩm</h2>
+          </div>
+          <span className="muted-count">{products.length} sản phẩm</span>
+        </div>
+        <div className="product-table">
+          {products.map((product) => (
+            <div className="product-row" key={product.id}>
+              <div className="table-product-icon">{<ProductArt product={product} />}</div>
+              <div className="table-product-name"><b>{product.name}</b><span>{product.category}</span></div>
+              <span className="table-stock">{product.stock} trong kho</span>
+              <strong>{formatVND(product.price)}</strong>
+              <div className="row-actions">
+                <button onClick={() => onEdit(product)} aria-label={`Sửa ${product.name}`}><Pencil size={16} /></button>
+                <button onClick={() => onDelete(product.id)} aria-label={`Xóa ${product.name}`}><Trash2 size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="admin-section">
+        <div className="admin-section-head">
+          <div>
+            <span className="section-kicker">ĐƠN HÀNG GẦN ĐÂY</span>
+            <h2>Cùng cây về nhà</h2>
+          </div>
+          <div className="admin-section-actions">
+            <span className="muted-count">{orders.length} đơn</span>
+            <button
+              type="button"
+              className={`delete-cancelled-btn ${cancelledCount > 0 ? "is-active" : ""}`}
+              onClick={onDeleteCancelledOrders}
+              disabled={cancelledCount === 0}
+              title={cancelledCount > 0 ? `Xóa vĩnh viễn ${cancelledCount} đơn hàng đã hủy` : "Không có đơn hàng đã hủy nào"}
+            >
+              <Trash2 size={15} />
+              <span>Xóa các đơn đã hủy {cancelledCount > 0 ? `(${cancelledCount})` : ""}</span>
+            </button>
+          </div>
+        </div>
+        <div className="admin-orders">
+          {orders.length ? (
+            orders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                admin
+                onStatusChange={onStatusChange}
+                onDeleteOrder={onDeleteOrder}
+              />
+            ))
+          ) : (
+            <div className="small-empty">Chưa có đơn hàng nào.</div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
 }
 function StatCard({ label, value, suffix, icon }) { return <div className="stat-card"><span className="stat-icon">{icon}</span><span className="stat-label">{label}</span><strong>{value}</strong><small>{suffix}</small></div>; }
 

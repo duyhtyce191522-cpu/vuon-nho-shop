@@ -363,3 +363,208 @@
     max-width: 75px;
   }
 }
+
+/* ==========================================================================
+   Order Management & Cancelled Orders Deletion Styles
+   ========================================================================== */
+.admin-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.delete-cancelled-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  border: 1px solid #dce5d8;
+  background: #f4f7f2;
+  color: #8b998c;
+  cursor: not-allowed;
+  transition: all 0.22s ease;
+  user-select: none;
+}
+
+.delete-cancelled-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.delete-cancelled-btn.is-active {
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 1;
+  background: #fdf2ef;
+  color: #c14d38;
+  border-color: #f7d2c8;
+  box-shadow: 0 2px 8px rgba(193, 77, 56, 0.08);
+}
+
+.delete-cancelled-btn.is-active:hover {
+  background: #c14d38;
+  color: #ffffff;
+  border-color: #c14d38;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(193, 77, 56, 0.24);
+}
+
+.delete-cancelled-btn.is-active:active {
+  transform: translateY(0);
+}
+
+/* Admin controls in Order Card */
+.admin-order-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-single-delete-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #f6cfc6;
+  border-radius: 8px;
+  background: #fdf2ef;
+  color: #c14d38;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.order-single-delete-btn:hover {
+  background: #c14d38;
+  color: #ffffff;
+  border-color: #c14d38;
+  transform: scale(1.06);
+  box-shadow: 0 3px 10px rgba(193, 77, 56, 0.25);
+}
+
+.order-single-delete-btn:active {
+  transform: scale(0.96);
+}
+
+.order-status-select.is-cancelled {
+  border-color: #f4cac0;
+  background: #fff6f4;
+  color: #c14d38;
+  font-weight: 500;
+}
+
+.order-card.order-card-cancelled {
+  background: #fffdfc;
+  border-color: #f2e3df;
+}
+
+.status-pill.status-pill-cancelled {
+  background: #fdede8;
+  color: #c14d38;
+}
+
+.status-pill.status-pill-cancelled span {
+  background: #c14d38;
+}
+
+/* ==========================================================================
+   Confirm Delete Modal
+   ========================================================================== */
+.confirm-modal-layer {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirm-delete-modal {
+  position: relative;
+  width: min(440px, 92vw);
+  background: var(--paper);
+  border: 1px solid #f2cec6;
+  border-radius: 20px;
+  padding: 32px 28px 26px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(50, 20, 15, 0.22);
+  animation: pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+}
+
+.confirm-delete-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fdeee9;
+  color: #c04e38;
+  box-shadow: 0 0 0 8px #fcf4f2;
+}
+
+.confirm-delete-modal h3 {
+  margin: 0 0 8px;
+  font: 600 22px 'Playfair Display', serif;
+  color: var(--deep);
+}
+
+.confirm-delete-modal p {
+  margin: 0 0 24px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.confirm-delete-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-btn-cancel {
+  flex: 1;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid #d4ded0;
+  background: #f4f7f2;
+  color: #556754;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirm-btn-cancel:hover {
+  background: #e8eee5;
+  border-color: #c4d0bf;
+  color: var(--deep);
+}
+
+.confirm-btn-delete {
+  flex: 1;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid #c04e38;
+  background: #c04e38;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(192, 78, 56, 0.25);
+}
+
+.confirm-btn-delete:hover {
+  background: #a93e2a;
+  border-color: #a93e2a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(192, 78, 56, 0.35);
+}
+
+
