@@ -101,17 +101,38 @@
 .garden-categories button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #e0e4d1; color: #657257; background: #fffdf5; border-radius: 30px; padding: 11px 15px; font-size: 12px; font-weight: 700; transition: .2s ease; }
 .garden-categories button.active { color: #fffdf5; border-color: #627c4e; background: #627c4e; }
 .garden-categories button:hover { transform: translateY(-3px); border-color: #829767; }
-.garden-search { display: flex; gap: 9px; align-items: center; padding: 10px 13px; background: #f0f1e4; border: 1px solid #e1e5d0; border-radius: 30px; width: 252px; color: #849374; }
-.garden-search:focus-within { outline: 2px solid #849767; outline-offset: 2px; }
-.garden-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-family: inherit; color: #45593d; font-size: 12px; }
-.garden-search input::placeholder { color: #758267; }.garden-search button { display: grid; place-items: center; background: none; border: 0; padding: 2px; color: inherit; }
+.garden-search {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 18px;
+  background: #f0f1e4;
+  border: 1px solid #dbe2cc;
+  border-radius: 30px;
+  min-width: 320px;
+  width: clamp(330px, 32vw, 490px);
+  color: #728461;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.garden-search:focus-within {
+  outline: 2px solid #627c4e;
+  outline-offset: 2px;
+  background: #fffdf7;
+  border-color: #627c4e;
+  box-shadow: 0 6px 20px rgba(98, 124, 78, 0.15);
+  width: clamp(360px, 36vw, 540px);
+}
+.garden-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-family: inherit; color: #45593d; font-size: 13px; }
+.garden-search input::placeholder { color: #758267; }
+.garden-search button { display: grid; place-items: center; background: none; border: 0; padding: 2px; color: inherit; cursor: pointer; }
 .catalog-result-count { display: flex; justify-content: space-between; gap: 12px; margin: 22px 0 16px; font-size: 11px; color: #79866c; }
 .catalog-result-count > span:last-child { display: flex; align-items: center; gap: 5px; }
 .garden-products { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 25px; }
 .garden-product { --card-bg: #eaf0de; --card-disc: #dce7cb; border: 1px solid #e2e5d5; border-radius: 24px; background: #fffdf7; overflow: hidden; transition: box-shadow .35s,border-color .35s; }
 .garden-tone-1 { --card-bg: #f4ebd9; --card-disc: #ebe1c4; }.garden-tone-2 { --card-bg: #e7ece0; --card-disc: #d6dfcc; }.garden-tone-3 { --card-bg: #f3e5db; --card-disc: #ead9c9; }
 .garden-product:hover { border-color: #c6d4b4; box-shadow: 0 14px 30px #50633c12; }
-.garden-product-visual { position: relative; height: 258px; background: var(--card-bg); display: grid; place-items: center; overflow: hidden; }
+.garden-product-visual { position: relative; height: 265px; background: var(--card-bg); display: grid; place-items: center; overflow: hidden; cursor: pointer; }
 .garden-product-visual > .botanical-art { z-index: 1; width: 245px; height: 245px; margin-top: 18px; transform-origin: 50% 95%; transition: transform .5s cubic-bezier(.2,.8,.2,1); }
 .garden-product:hover .garden-product-visual > .botanical-art { transform: translateY(-4px) rotate(-3deg) scale(1.03); }
 .garden-product:hover .plant-foliage { transform-origin: 150px 200px; animation: garden-sway 2.8s ease-in-out infinite; }
@@ -122,17 +143,389 @@
 .illustration-note { position: absolute; bottom: 9px; right: 15px; font-size: 9px; color: #667453; opacity: .75; }
 .garden-product-visual > .matched-emoji { position: relative; z-index: 1; width: 180px; height: 210px; font-size: 94px; filter: drop-shadow(0 12px 4px #46563614); transition: transform .4s; }
 .garden-product:hover .matched-emoji { transform: rotate(-8deg) translateY(-5px); }
-.garden-product-info { padding: 19px 21px 21px; }
+
+/* --- Bong bóng trò chuyện của cây có chuyển động --- */
+.plant-speech-bubble {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  max-width: 175px;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1.5px solid #bdd0a7;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(50, 75, 45, 0.12);
+  animation: float-bubble 3.2s ease-in-out infinite;
+  transform-origin: bottom left;
+  transition: all 0.25s ease;
+}
+
+.plant-speech-bubble.is-speaking-excited {
+  background: #fffdf0;
+  border-color: #7ea360;
+  transform: scale(1.08) translateY(-4px);
+  box-shadow: 0 8px 22px rgba(85, 120, 65, 0.24);
+}
+
+.speech-icon {
+  font-size: 14px;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.speech-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #3b5635;
+  line-height: 1.35;
+}
+
+.speech-tail {
+  position: absolute;
+  bottom: -6px;
+  left: 18px;
+  width: 9px;
+  height: 9px;
+  background: inherit;
+  border-right: 1.5px solid #bdd0a7;
+  border-bottom: 1.5px solid #bdd0a7;
+  transform: rotate(45deg);
+}
+
+/* --- Khối cây có chuyển động vui vẻ --- */
+.plant-art-wrapper {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 50% 90%;
+  animation: plant-idle-sway 4.5s ease-in-out infinite;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.plant-art-wrapper.plant-jump,
+.garden-product:hover .plant-art-wrapper {
+  animation: plant-joy-jump 0.8s ease-in-out forwards;
+}
+
+.tap-talk-hint {
+  position: absolute;
+  bottom: 9px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #cadbb6;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #496639;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.tap-talk-hint:hover {
+  background: #627c4e;
+  color: #fffef4;
+  border-color: #627c4e;
+  transform: translateY(-2px);
+}
+
+.garden-product-info { padding: 18px 20px 20px; }
+
+/* Tag nhân vật của cây */
+.product-personality-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+
+.product-char-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #385433;
+  background: #edf3e1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #d4e0c3;
+}
+
+.product-mood-tag {
+  font-size: 10.5px;
+  color: #768764;
+  font-style: italic;
+}
+
 .product-stock { display: flex; align-items: center; gap: 6px; color: #798765; font-size: 10px; }
 .product-stock > span { width: 5px; height: 5px; border-radius: 50%; background: #94a569; }.product-stock > .sold-out { background: #bc8e70; }
-.garden-product-info h3 { color: #3e5738; font: 700 20px/1.35 'Quicksand',sans-serif; margin: 9px 0 7px; letter-spacing: -.025em; overflow-wrap: anywhere; }
-.garden-product-info > p { margin: 0; color: #7c846e; font-size: 12px; line-height: 1.7; min-height: 41px; }
-.garden-product-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 23px; padding-top: 15px; border-top: 1px dashed #e1e4d2; }
+.garden-product-info h3 { color: #3e5738; font: 700 20px/1.35 'Quicksand',sans-serif; margin: 7px 0 6px; letter-spacing: -.025em; overflow-wrap: anywhere; }
+
+/* Nút bấm mở chi tiết câu chuyện bé cây trên card */
+.story-open-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 14px;
+  padding: 8px 12px;
+  background: #f4f8ed;
+  border: 1px dashed #cadbb4;
+  border-radius: 12px;
+  color: #496739;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.story-open-trigger:hover {
+  background: #e8f1dc;
+  border-color: #7da55d;
+  color: #2e4921;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(80, 110, 65, 0.08);
+}
+
+.story-open-trigger .trigger-icon {
+  display: grid;
+  place-items: center;
+  color: #6d8e4f;
+}
+
+.story-open-trigger .trigger-spark {
+  color: #8da664;
+  font-size: 13px;
+}
+
+/* --- Story Modal Popup khi bấm vào sản phẩm --- */
+.story-modal-box {
+  width: min(520px, 94vw);
+  background: #fffef8;
+  border: 1px solid #dbe4ce;
+  border-radius: 22px;
+  padding: 26px 28px;
+  box-shadow: 0 24px 75px rgba(35, 60, 42, 0.26);
+  animation: pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.story-modal-visual {
+  position: relative;
+  height: 220px;
+  background: #eaf1df;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  margin-bottom: 16px;
+  cursor: pointer;
+  border: 1px solid #dfe7d2;
+}
+
+.story-modal-visual:hover .story-modal-art,
+.story-modal-art.is-jumping {
+  animation: plant-joy-jump 0.8s ease-in-out;
+}
+
+.story-modal-art {
+  z-index: 1;
+  transform-origin: 50% 90%;
+  animation: plant-idle-sway 4s ease-in-out infinite;
+  transition: transform 0.35s ease;
+}
+
+.story-modal-bubble {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  max-width: 210px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 7px 11px;
+  background: #ffffff;
+  border: 1.5px solid #bdd2a9;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(50, 75, 45, 0.12);
+  animation: float-bubble 3.2s ease-in-out infinite;
+  transition: all 0.2s ease;
+}
+
+.story-modal-bubble.is-talking {
+  background: #fffdf2;
+  border-color: #698c4f;
+  transform: scale(1.05);
+}
+
+.story-tap-hint {
+  position: absolute;
+  bottom: 9px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cadbb6;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #496639;
+}
+
+.story-modal-character {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.char-badge-lg {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #2f4e2b;
+  background: #edf4e0;
+  border: 1px solid #cddcbe;
+  padding: 4px 11px;
+  border-radius: 8px;
+}
+
+.char-mood-lg {
+  font-size: 11.5px;
+  color: #687e55;
+  font-style: italic;
+}
+
+.story-quote-card {
+  position: relative;
+  background: #f8faf2;
+  border: 1px dashed #cad9b5;
+  border-radius: 15px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.story-quote-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #4b673a;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+.story-full-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: #384d33;
+  margin: 0;
+  font-style: italic;
+}
+
+.story-voice-box {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed #d5e2c5;
+  font-size: 12px;
+  color: #557245;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.story-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed #dfe5d2;
+}
+
+.story-price-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.story-price-label {
+  font-size: 11px;
+  color: #859676;
+}
+
+.story-price-val {
+  font-size: 21px;
+  font-weight: 800;
+  color: #4e6b36;
+  letter-spacing: -0.02em;
+}
+
+.garden-product-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e1e4d2; }
 .garden-product-bottom strong { font-size: 19px; letter-spacing: -.03em; font-weight: 800; color: #617b48; overflow-wrap: anywhere; }
-.garden-product-bottom button { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 800; padding: 10px 12px; border: 1px solid #d5dfc0; border-radius: 30px; color: #688250; background: #edf1e1; transition: background .25s,transform .25s; }
+.garden-product-bottom button { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 800; padding: 10px 12px; border: 1px solid #d5dfc0; border-radius: 30px; color: #688250; background: #edf1e1; transition: background .25s,transform .25s; cursor: pointer; }
 .garden-product-bottom button:hover:not(:disabled), .garden-product-bottom button.just-added { background: #66814d; color: #fffdf1; border-color: #66814d; }
 .garden-product-bottom button:active:not(:disabled) { transform: scale(.94); }
 .garden-product-bottom button:disabled { opacity: .5; cursor: not-allowed; }.garden-product-bottom .just-added svg { animation: garden-pop .4s ease both; }
+
+/* Keyframe animations chuyển động */
+@keyframes float-bubble {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+
+@keyframes plant-idle-sway {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  33% {
+    transform: rotate(1.5deg) scale(1.01);
+  }
+  66% {
+    transform: rotate(-1.5deg) scale(0.995);
+  }
+}
+
+@keyframes plant-joy-jump {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(1.08, 0.92) translateY(2px);
+  }
+  55% {
+    transform: scale(0.95, 1.06) translateY(-10px) rotate(3deg);
+  }
+  75% {
+    transform: scale(1.03, 0.98) translateY(-2px) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(0deg);
+  }
+}
 .garden-empty { display: grid; justify-items: center; padding: 55px 20px; border: 1px dashed #c9d2b4; border-radius: 24px; text-align: center; color: #78855f; }
 .garden-empty h3 { font-family: 'Quicksand',sans-serif; font-size: 23px; margin-bottom: 0; }.garden-empty p { font-size: 14px; }.garden-empty button { margin-top: 16px; }
 .garden-note { max-width: 1224px; margin: 0 auto; position: relative; display: grid; grid-template-columns: .65fr 1.35fr; align-items: center; gap: 55px; padding: 32px 65px 32px 40px; background: #e9edda; border-radius: 26px; border: 1px solid #dfe5ca; scroll-margin-top: 120px; }

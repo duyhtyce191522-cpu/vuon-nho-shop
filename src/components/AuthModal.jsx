@@ -1,15 +1,25 @@
-﻿import { useState, useEffect } from "react";
-import { X, Lock, User, Phone, MapPin, ShieldCheck, Sparkles, LogIn, UserPlus, Eye, EyeOff, Check, AlertCircle, Sprout } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, LogIn, UserPlus, Eye, EyeOff, Check, AlertCircle, ShieldCheck, Lock, Sparkles } from "lucide-react";
+import { authenticateUser, registerUser, validatePasswordRules } from "../lib/userDatabase";
 
 export default function AuthModal({ isOpen, initialTab = "login", onClose, onLoginSuccess, apiUrl }) {
   const [tab, setTab] = useState(initialTab || "login");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [regForm, setRegForm] = useState({ fullName: "", username: "", phone: "", address: "", password: "", confirmPassword: "" });
+  const [regForm, setRegForm] = useState({
+    fullName: "",
+    username: "",
+    phone: "",
+    address: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -17,20 +27,28 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
       setError("");
       setSuccessMsg("");
       setShowPassword(false);
+      setShowRegPassword(false);
+      setShowRegConfirmPassword(false);
     }
   }, [isOpen, initialTab]);
 
-  if (!isOpen) return null;
-
-  const fillDemo = (role) => {
+  const fillUsername = (name) => {
     setError("");
-    setTab("login");
-    if (role === "admin") {
-      setLoginForm({ username: "admin", password: "yenduy123" });
-    } else {
-      setLoginForm({ username: "khachhang", password: "123456" });
-    }
+    setLoginForm((prev) => ({ ...prev, username: name, password: "" }));
   };
+
+  // Kiểm tra thời gian thực các tiêu chuẩn mật khẩu đăng ký
+  const passCriteria = useMemo(() => {
+    const p = regForm.password || "";
+    return {
+      hasLength: p.length >= 6,
+      hasLetter: /[a-zA-Z]/.test(p),
+      hasNumber: /[0-9]/.test(p),
+      hasSpecial: /[^a-zA-Z0-9\s]/.test(p),
+    };
+  }, [regForm.password]);
+
+  if (!isOpen) return null;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -39,84 +57,33 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
 
     const username = loginForm.username.trim();
     const password = loginForm.password;
+
     if (!username || !password) {
-      setError("Vui lòng nhập tên đăng nhập và mật khẩu");
+      setError("Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu.");
       return;
     }
 
     setLoading(true);
     try {
-      // Try /api/users/login first, then /api/auth/login or /api/admin/login
-      let response = await fetch(`${apiUrl}/api/users/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      }).catch(() => null);
+      // Đối chiếu trực tiếp với database người dùng (và API nếu có)
+      const authResult = await authenticateUser(username, password, apiUrl);
 
-      if (!response || !response.ok) {
-        response = await fetch(`${apiUrl}/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        }).catch(() => null);
+      if (!authResult.success) {
+        setError(authResult.error || "Tài khoản hoặc mật khẩu không chính xác!");
+        return;
       }
 
-      if (!response || !response.ok) {
-        // Also check if admin login
-        if (username === "admin") {
-          const adminRes = await fetch(`${apiUrl}/api/admin/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: "admin", password }),
-          }).catch(() => null);
-          if (adminRes && adminRes.ok) {
-            const adminData = await adminRes.json();
-            if (adminData.success) {
-              const adminUser = { id: 1, username: "admin", full_name: "Chủ Vườn Yến Duy", role: "admin" };
-              setSuccessMsg("Đăng nhập Admin thành công!");
-              setTimeout(() => {
-                onLoginSuccess(adminUser, "token-admin");
-                onClose();
-              }, 400);
-              return;
-            }
-          }
-        }
-      }
+      // Đăng nhập thành công
+      const user = authResult.user;
+      const isAdmin = user.role === "admin";
+      setSuccessMsg(isAdmin ? "Đăng nhập quyền Admin thành công!" : "Đăng nhập thành công!");
 
-      if (response && response.ok) {
-        const data = await response.json();
-        if (data.user) {
-          setSuccessMsg("Đăng nhập thành công!");
-          setTimeout(() => {
-            onLoginSuccess(data.user, data.token || "token");
-            onClose();
-          }, 400);
-          return;
-        }
-      }
-
-      const errData = response ? await response.json().catch(() => null) : null;
-      throw new Error(errData?.message || errData?.error || "Tài khoản hoặc mật khẩu không chính xác");
+      setTimeout(() => {
+        onLoginSuccess(user, authResult.token);
+        onClose();
+      }, 400);
     } catch (err) {
-      // Offline fallback
-      if (username === "admin" && (password === "yenduy123" || password === "admin123")) {
-        const mockAdmin = { id: 1, username: "admin", full_name: "Chủ Vườn Yến Duy", role: "admin" };
-        setSuccessMsg("Đăng nhập Admin thành công (Demo)!");
-        setTimeout(() => {
-          onLoginSuccess(mockAdmin, "mock-admin-token");
-          onClose();
-        }, 400);
-      } else if (password.length >= 6) {
-        const mockUser = { id: Date.now(), username, full_name: username, phone: "0900000000", address: "Việt Nam", role: "customer" };
-        setSuccessMsg("Đăng nhập thành công!");
-        setTimeout(() => {
-          onLoginSuccess(mockUser, "mock-user-token");
-          onClose();
-        }, 400);
-      } else {
-        setError(err.message || "Đăng nhập không thành công");
-      }
+      setError(err.message || "Đăng nhập thất bại. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
@@ -132,60 +99,60 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
     const phone = regForm.phone.trim();
     const address = regForm.address.trim();
     const password = regForm.password;
+    const confirmPassword = regForm.confirmPassword;
 
     if (!fullName || !username || !password) {
-      setError("Vui lòng điền đủ Họ tên, Tên đăng nhập và Mật khẩu");
+      setError("Vui lòng điền đủ Họ tên, Tên đăng nhập và Mật khẩu.");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Mật khẩu cần ít nhất 6 ký tự");
+    // Kiểm tra quy tắc mật khẩu: >= 6 ký tự, có chữ, có số, có ký tự đặc biệt
+    const passCheck = validatePasswordRules(password);
+    if (!passCheck.isValid) {
+      setError(passCheck.message);
       return;
     }
 
-    if (password !== regForm.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
+    if (password !== confirmPassword) {
+      setError("Mật khẩu xác nhận chưa trùng khớp. Vui lòng nhập lại!");
       return;
     }
 
     setLoading(true);
     try {
-      let response = await fetch(`${apiUrl}/api/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: fullName, username, phone, address, password }),
-      }).catch(() => null);
+      // Lưu vào database
+      const regResult = await registerUser(
+        { fullName, username, phone, address, password },
+        apiUrl
+      );
 
-      if (!response || !response.ok) {
-        response = await fetch(`${apiUrl}/api/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ full_name: fullName, username, phone, address, password }),
-        }).catch(() => null);
+      if (!regResult.success) {
+        setError(regResult.message || "Đăng ký không thành công!");
+        return;
       }
 
-      if (response && response.ok) {
-        const data = await response.json();
-        if (data.user) {
-          setSuccessMsg("Tạo tài khoản thành công! Đang tự động đăng nhập...");
-          setTimeout(() => {
-            onLoginSuccess(data.user, data.token || "token");
-            onClose();
-          }, 500);
-          return;
-        }
-      }
+      // Yêu cầu: Sau khi đăng ký thành công, lưu vào database, chuyển về màn hình đăng nhập
+      // Điền sẵn tên đăng nhập đã đăng ký và yêu cầu nhập mật khẩu để đăng nhập lại
+      setLoginForm({
+        username: username,
+        password: "",
+      });
 
-      const errData = response ? await response.json().catch(() => null) : null;
-      throw new Error(errData?.message || errData?.error || "Đăng ký không thành công. Tên đăng nhập có thể đã tồn tại");
+      // Reset form đăng ký
+      setRegForm({
+        fullName: "",
+        username: "",
+        phone: "",
+        address: "",
+        password: "",
+        confirmPassword: "",
+      });
+
+      // Chuyển sang tab Đăng nhập
+      setTab("login");
+      setSuccessMsg(`Đăng ký tài khoản "${username}" thành công! Vui lòng nhập mật khẩu để đăng nhập.`);
     } catch (err) {
-      // Offline fallback
-      const mockUser = { id: Date.now(), username, full_name: fullName, phone, address, role: "customer" };
-      setSuccessMsg("Tạo tài khoản thành công!");
-      setTimeout(() => {
-        onLoginSuccess(mockUser, "mock-registered-token");
-        onClose();
-      }, 500);
+      setError(err.message || "Có lỗi xảy ra khi tạo tài khoản!");
     } finally {
       setLoading(false);
     }
@@ -247,13 +214,14 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
         {tab === "login" ? (
           <form onSubmit={handleLogin} className="form-stack">
             <label className="form-field">
-              <span>Tên đăng nhập hoặc Số điện thoại</span>
+              <span>Tên đăng nhập</span>
               <input
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                placeholder="Ví dụ: admin hoặc tên của bạn..."
+                placeholder="Nhập tên đăng nhập của bạn..."
                 required
+                autoFocus={tab === "login"}
               />
             </label>
 
@@ -290,14 +258,14 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
             </label>
 
             <button type="submit" disabled={loading} className="primary-button full-button" style={{ marginTop: "8px" }}>
-              {loading ? "Đang kiểm tra..." : <><LogIn size={16} /> Đăng nhập ngay</>}
+              {loading ? "Đang xác thực..." : <><LogIn size={16} /> Đăng nhập ngay</>}
             </button>
 
-            <div style={{ textAlign: "center", fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
+            <div style={{ textAlign: "center", fontSize: "12px", color: "var(--muted)", marginTop: "8px" }}>
               Chưa có tài khoản?{" "}
               <button
                 type="button"
-                onClick={() => { setTab("register"); setError(""); }}
+                onClick={() => { setTab("register"); setError(""); setSuccessMsg(""); }}
                 style={{ background: "none", border: "none", color: "var(--forest)", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
               >
                 Đăng ký ngay
@@ -305,14 +273,29 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
             </div>
 
             <div className="auth-quick-fill">
-              <span className="auth-quick-label"><Sparkles size={13} /> Gợi ý đăng nhập nhanh:</span>
+              <span className="auth-quick-label">
+                <Sparkles size={13} /> Gợi ý tên đăng nhập:
+              </span>
               <div className="auth-quick-buttons">
-                <button type="button" onClick={() => fillDemo("admin")} className="auth-demo-pill">
-                  <b>🛡️ Admin:</b> admin / yenduy123
+                <button
+                  type="button"
+                  onClick={() => fillUsername("admin")}
+                  className="auth-demo-pill"
+                  title="Điền tên đăng nhập admin"
+                >
+                  <b>🛡️ Admin:</b> admin
                 </button>
-                <button type="button" onClick={() => fillDemo("customer")} className="auth-demo-pill">
-                  <b>🌱 Khách:</b> khachhang / 123456
+                <button
+                  type="button"
+                  onClick={() => fillUsername("khachhang")}
+                  className="auth-demo-pill"
+                  title="Điền tên đăng nhập khách hàng"
+                >
+                  <b>🌱 Khách:</b> khachhang
                 </button>
+              </div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", textAlign: "center" }}>
+                * Chỉ gợi ý tên đăng nhập, bạn tự nhập mật khẩu nhé
               </div>
             </div>
           </form>
@@ -324,7 +307,7 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
                 type="text"
                 value={regForm.fullName}
                 onChange={(e) => setRegForm({ ...regForm, fullName: e.target.value })}
-                placeholder="Ví dụ: Nguyễn Yến Duy"
+                placeholder="Ví dụ: Nguyễn Văn An"
                 required
               />
             </label>
@@ -336,7 +319,7 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
                   type="text"
                   value={regForm.username}
                   onChange={(e) => setRegForm({ ...regForm, username: e.target.value.toLowerCase().replace(/\s+/g, "") })}
-                  placeholder="yenduy99"
+                  placeholder="Ví dụ: vanan99"
                   required
                 />
               </label>
@@ -365,39 +348,102 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
             <div className="form-row">
               <label className="form-field">
                 <span>Mật khẩu <b style={{ color: "var(--clay)" }}>*</b></span>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={regForm.password}
-                  onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                  placeholder="Tối thiểu 6 ký tự"
-                  required
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showRegPassword ? "text" : "password"}
+                    value={regForm.password}
+                    onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                    placeholder="Mật khẩu bảo mật"
+                    style={{ width: "100%", paddingRight: "40px" }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--muted)",
+                      padding: "4px",
+                    }}
+                    aria-label={showRegPassword ? "Ẩn" : "Hiện"}
+                  >
+                    {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </label>
 
               <label className="form-field">
                 <span>Nhập lại mật khẩu <b style={{ color: "var(--clay)" }}>*</b></span>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={regForm.confirmPassword}
-                  onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
-                  placeholder="Khớp với mật khẩu"
-                  required
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showRegConfirmPassword ? "text" : "password"}
+                    value={regForm.confirmPassword}
+                    onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
+                    placeholder="Khớp với mật khẩu"
+                    style={{ width: "100%", paddingRight: "40px" }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--muted)",
+                      padding: "4px",
+                    }}
+                    aria-label={showRegConfirmPassword ? "Ẩn" : "Hiện"}
+                  >
+                    {showRegConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </label>
             </div>
 
-            {isMismatch && <div style={{ fontSize: "11px", color: "var(--clay)", marginTop: "-4px" }}>✗ Mật khẩu xác nhận chưa trùng khớp</div>}
-            {isMatch && <div style={{ fontSize: "11px", color: "var(--forest)", marginTop: "-4px" }}>✓ Mật khẩu xác nhận trùng khớp</div>}
+            {/* Checklist yêu cầu mật khẩu */}
+            <div className="auth-password-criteria">
+              <div className="criteria-title">
+                <Lock size={12} /> Yêu cầu mật khẩu (tối thiểu 6 ký tự, gồm chữ, số và ký tự):
+              </div>
+              <div className="criteria-grid">
+                <span className={`criteria-item ${passCriteria.hasLength ? "is-valid" : ""}`}>
+                  {passCriteria.hasLength ? "✓" : "○"} Tối thiểu 6 ký tự
+                </span>
+                <span className={`criteria-item ${passCriteria.hasLetter ? "is-valid" : ""}`}>
+                  {passCriteria.hasLetter ? "✓" : "○"} Chứa chữ cái
+                </span>
+                <span className={`criteria-item ${passCriteria.hasNumber ? "is-valid" : ""}`}>
+                  {passCriteria.hasNumber ? "✓" : "○"} Chứa chữ số
+                </span>
+                <span className={`criteria-item ${passCriteria.hasSpecial ? "is-valid" : ""}`}>
+                  {passCriteria.hasSpecial ? "✓" : "○"} Ký tự đặc biệt (!@#$)
+                </span>
+              </div>
+            </div>
 
-            <button type="submit" disabled={loading} className="primary-button full-button" style={{ marginTop: "6px" }}>
+            {isMismatch && <div style={{ fontSize: "11.5px", color: "var(--clay)", marginTop: "-2px" }}>✗ Mật khẩu xác nhận chưa trùng khớp</div>}
+            {isMatch && <div style={{ fontSize: "11.5px", color: "var(--forest)", marginTop: "-2px" }}>✓ Mật khẩu xác nhận trùng khớp</div>}
+
+            <button type="submit" disabled={loading} className="primary-button full-button" style={{ marginTop: "8px" }}>
               {loading ? "Đang khởi tạo tài khoản..." : <><UserPlus size={16} /> Tạo tài khoản thành viên</>}
             </button>
 
-            <div style={{ textAlign: "center", fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
+            <div style={{ textAlign: "center", fontSize: "12px", color: "var(--muted)", marginTop: "8px" }}>
               Đã có tài khoản?{" "}
               <button
                 type="button"
-                onClick={() => { setTab("login"); setError(""); }}
+                onClick={() => { setTab("login"); setError(""); setSuccessMsg(""); }}
                 style={{ background: "none", border: "none", color: "var(--forest)", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
               >
                 Đăng nhập ngay

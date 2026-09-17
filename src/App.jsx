@@ -22,16 +22,17 @@ import ProductArt from './components/ProductArt';
 import AuthModal from './components/AuthModal';
 import { LogIn, LogOut, User, UserPlus } from "lucide-react";
 import { normalizeName } from './lib/productVisual';
+import { authenticateUser } from './lib/userDatabase';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const CATEGORIES = ["Tất cả", "Cây lớn", "Cây leo", "Sen đá", "Chậu & phụ kiện"];
 const SEED_PRODUCTS = [
-  { id: "p1", name: "Trầu bà Nam Mỹ", desc: "Lá xẻ to bản, hợp góc phòng khách nhiều nắng gián tiếp.", price: 185000, category: "Cây lớn", stock: 8, icon: "🌿" },
-  { id: "p2", name: "Sen đá Ngọc Lan", desc: "Nhỏ gọn, dễ sống, tưới một lần mỗi tuần.", price: 45000, category: "Sen đá", stock: 24, icon: "🌵" },
-  { id: "p3", name: "Lưỡi hổ vàng", desc: "Lọc không khí tốt, chịu bóng râm, hợp phòng ngủ.", price: 95000, category: "Cây lớn", stock: 15, icon: "🪴" },
-  { id: "p4", name: "Xương rồng tai thỏ", desc: "Hình dáng đáng yêu, hợp bàn làm việc nhiều nắng.", price: 39000, category: "Sen đá", stock: 30, icon: "🌵" },
-  { id: "p5", name: "Trầu bà lá phượng", desc: "Dáng leo mềm mại, hợp treo giá hoặc kệ cao.", price: 68000, category: "Cây leo", stock: 12, icon: "🌱" },
-  { id: "p6", name: "Chậu gốm nung tay", desc: "Chậu thủ công 14cm, có lỗ thoát nước cho rễ khỏe.", price: 55000, category: "Chậu & phụ kiện", stock: 20, icon: "🏺" },
+  { id: "p1", name: "Trầu bà Nam Mỹ", desc: "Mỗi sớm mai, bé Monstera lại háo hức xòe chiếc lá to bản đón nắng sớm. Ước mơ lớn nhất của bé là biến góc phòng bạn thành một khu rừng nhiệt đới ngập tràn tiếng cười.", price: 185000, category: "Cây lớn", stock: 8, icon: "🌿" },
+  { id: "p2", name: "Sen đá Ngọc Lan", desc: "Chiếc búp nhỏ kiên cường khẽ cuộn mình e ấp, chỉ cần một ngụm nước mỗi tuần là đủ vui vẻ tỏa hương sắc dịu dàng bên bàn làm việc của bạn.", price: 45000, category: "Sen đá", stock: 24, icon: "🌵" },
+  { id: "p3", name: "Lưỡi hổ vàng", desc: "Chàng dũng sĩ khoác áo sọc vàng luôn đứng gác âm thầm góc phòng, lọc sạch bụi bẩn suốt đêm để trao cho bạn một giấc ngủ thật an yên.", price: 95000, category: "Cây lớn", stock: 15, icon: "🪴" },
+  { id: "p4", name: "Xương rồng tai thỏ", desc: "Hai chiếc tai thỏ xanh mướt lúc nào cũng vểnh lên nghe ngóng. Nhiệm vụ tối cao của bé là nhắc bạn uống nước đúng giờ và thư giãn sau giờ chạy deadline.", price: 39000, category: "Sen đá", stock: 30, icon: "🌵" },
+  { id: "p5", name: "Trầu bà lá phượng", desc: "Nàng thơ tóc dài buông lơi mềm mại bên kệ sách, khẽ đung đưa theo từng cơn gió thoảng và lắng nghe tiếng lật sách thì thầm mỗi chiều mưa.", price: 68000, category: "Cây leo", stock: 12, icon: "🌱" },
+  { id: "p6", name: "Chậu gốm nung tay", desc: "Món quà nung ấm từ đất mẹ với đôi má hồng mộc mạc, luôn mở rộng vòng tay để ủ ấm bộ rễ và nâng niu từng mầm xanh nhỏ bé lớn khôn.", price: 55000, category: "Chậu & phụ kiện", stock: 20, icon: "🏺" },
 ];
 
 const formatVND = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -80,9 +81,17 @@ function App() {
       localStorage.setItem("vuon-nho-user", JSON.stringify(user));
       if (token) localStorage.setItem("vuon-nho-token", token);
     } catch {}
+
     if (user.role === "admin") {
       setAdminAuthed(true);
+      setView("admin"); // Chuyển hướng trực tiếp vào trang quản trị của Admin
+      notify("Chào mừng Quản trị viên " + (user.full_name || user.username) + " đến với Studio Quản trị! 🛡️");
+    } else {
+      setAdminAuthed(false);
+      setView("shop"); // Chuyển hướng trực tiếp vào trang cửa hàng của Khách
+      notify("Chào mừng " + (user.full_name || user.username) + " đến với Vườn Nhỏ! 🌱");
     }
+
     if (user.full_name || user.phone || user.address) {
       setBuyer((prev) => ({
         name: user.full_name || user.username || prev.name,
@@ -90,7 +99,6 @@ function App() {
         address: user.address || prev.address,
       }));
     }
-    notify("Chào mừng " + (user.full_name || user.username) + " đến với Vườn Nhỏ! 🌱");
   }
 
   function handleLogout() {
@@ -195,11 +203,36 @@ function App() {
   function resetCheckout() { setCartOpen(false); setCheckoutStep("cart"); setBuyer({ name: "", phone: "", address: "" }); }
   async function loginAdmin() {
     try {
-      const response = await fetch(`${API_URL}/api/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "admin", password }) });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error("Sai mật khẩu");
-      setAdminAuthed(true); setPasswordError(false); notify("Chào mừng bạn trở lại");
-    } catch { setPasswordError(true); }
+      let authed = false;
+      const response = await fetch(`${API_URL}/api/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "admin", password }),
+      }).catch(() => null);
+
+      if (response && response.ok) {
+        const data = await response.json();
+        if (data.success) authed = true;
+      }
+
+      if (!authed) {
+        const check = await authenticateUser("admin", password);
+        if (check.success && check.user.role === "admin") {
+          authed = true;
+          setCurrentUser(check.user);
+          try {
+            localStorage.setItem("vuon-nho-user", JSON.stringify(check.user));
+          } catch {}
+        }
+      }
+
+      if (!authed) throw new Error("Sai mật khẩu");
+      setAdminAuthed(true);
+      setPasswordError(false);
+      notify("Chào mừng bạn trở lại Studio Quản trị! 🛡️");
+    } catch {
+      setPasswordError(true);
+    }
   }
   async function deleteProduct(id) {
     if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này?")) return;
@@ -253,24 +286,14 @@ function App() {
             </button>
           </div>
         ) : (
-          <div className="auth-buttons-group">
-            <button
-              type="button"
-              className="auth-btn-login"
-              onClick={() => { setAuthModalTab("login"); setAuthModalOpen(true); }}
-            >
-              <LogIn size={15} />
-              <span>Đăng nhập</span>
-            </button>
-            <button
-              type="button"
-              className="auth-btn-register"
-              onClick={() => { setAuthModalTab("register"); setAuthModalOpen(true); }}
-            >
-              <UserPlus size={15} />
-              <span>Đăng ký</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="auth-btn-login"
+            onClick={() => { setAuthModalTab("login"); setAuthModalOpen(true); }}
+          >
+            <LogIn size={15} />
+            <span>Đăng nhập</span>
+          </button>
         )}
 
         <button aria-label={`Giỏ hàng (${cartCount} sản phẩm)`} className="cart-button" onClick={() => { setCartOpen(true); setCheckoutStep("cart"); }}>
