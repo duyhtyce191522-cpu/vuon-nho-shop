@@ -136,15 +136,10 @@ function ProductStoryModal({ product, onClose, onAdd }) {
 function GardenProduct({ product, index, onAdd, onOpenStory }) {
   const stock = Number(product.stock) || 0;
   const [added, setAdded] = useState(false);
-  const [reacting, setReacting] = useState(false);
   const timer = useRef(null);
-  const reactTimer = useRef(null);
-
-  const story = getProductStory(product);
 
   useEffect(() => () => {
     window.clearTimeout(timer.current);
-    window.clearTimeout(reactTimer.current);
   }, []);
 
   function add(e) {
@@ -156,79 +151,38 @@ function GardenProduct({ product, index, onAdd, onOpenStory }) {
     timer.current = window.setTimeout(() => setAdded(false), 1600);
   }
 
-  function handlePlantInteraction(e) {
-    e.stopPropagation();
-    setReacting(true);
-    window.clearTimeout(reactTimer.current);
-    reactTimer.current = window.setTimeout(() => setReacting(false), 2600);
-  }
-
   return (
     <article
-      className={`garden-product garden-tone-${index % 4} ${reacting ? 'is-interacting' : ''}`}
+      className={`garden-product garden-tone-${index % 4}`}
       data-reveal
       style={{ '--delay': `${index % 3 * 90}ms`, cursor: "pointer" }}
       onClick={() => onOpenStory(product)}
+      title="Bấm vào sản phẩm để xem câu chuyện và chi tiết"
     >
-      <div className="garden-product-visual" onClick={handlePlantInteraction} title="Chạm để xem câu chuyện của bé">
+      <div className="garden-product-visual">
         <span className="product-category-label">{product.category}</span>
         <span className="product-art-spark" aria-hidden="true">✧</span>
         <div className="product-art-disc" />
 
-        {/* Bong bóng trò chuyện có chuyển động dễ thương */}
-        <div className={`plant-speech-bubble ${reacting ? 'is-speaking-excited' : ''}`} title="Bấm để lắng nghe bé cây">
-          <span className="speech-icon">{story.sparkle}</span>
-          <span className="speech-text">{reacting ? story.reaction : story.voice}</span>
-          <span className="speech-tail" />
-        </div>
-
-        {/* Khối minh họa cây có chuyển động nhún nhảy, lắc lư vui vẻ */}
-        <div className={`plant-art-wrapper ${reacting ? 'plant-jump' : ''}`}>
-          <ProductArt product={product} smile />
-        </div>
-
-        <button
-          type="button"
-          className="tap-talk-hint"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenStory(product);
-          }}
-        >
-          <BookOpen size={11} /> Bấm xem chuyện bé
-        </button>
+        <ProductArt product={product} />
       </div>
 
       <div className="garden-product-info">
-        <div className="product-personality-row">
-          <span className="product-char-tag">{story.tag}</span>
-          <span className="product-mood-tag">{story.mood}</span>
-        </div>
-
         <div className="product-stock">
           <span className={stock > 0 ? '' : 'sold-out'} />
           {stock > 0 ? `Còn ${stock} sản phẩm` : 'Tạm hết hàng'}
         </div>
 
-        <h3 onClick={() => onOpenStory(product)}>{product.name}</h3>
-
-        {/* Nút bấm để mở chi tiết câu chuyện theo yêu cầu */}
-        <button
-          type="button"
-          className="story-open-trigger"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenStory(product);
-          }}
-        >
-          <span className="trigger-icon"><BookOpen size={14} /></span>
-          <span className="trigger-text">Đọc chuyện bé cây</span>
-          <span className="trigger-spark">✿</span>
-        </button>
+        <h3>{product.name}</h3>
 
         <div className="garden-product-bottom">
           <strong>{money(product.price)}</strong>
-          <button onClick={add} disabled={stock <= 0} className={added ? 'just-added' : ''} aria-label={`Thêm ${product.name} vào giỏ`}>
+          <button
+            onClick={add}
+            disabled={stock <= 0}
+            className={added ? 'just-added' : ''}
+            aria-label={`Thêm ${product.name} vào giỏ`}
+          >
             {added ? <><Check size={17} /><span>Đã thêm</span></> : <><Plus size={17} /><span>Thêm vào giỏ</span></>}
           </button>
         </div>
