@@ -27,13 +27,14 @@ import { authenticateUser } from './lib/userDatabase';
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const CATEGORIES = ["Tất cả", "Cây lớn", "Cây leo", "Sen đá", "Chậu & phụ kiện"];
 const SEED_PRODUCTS = [
-  { id: "p1", name: "Trầu bà Nam Mỹ", desc: "Mỗi sớm mai, bé Monstera lại háo hức xòe chiếc lá to bản đón nắng sớm. Ước mơ lớn nhất của bé là biến góc phòng bạn thành một khu rừng nhiệt đới ngập tràn tiếng cười.", price: 185000, category: "Cây lớn", stock: 8, icon: "🌿" },
-  { id: "p2", name: "Sen đá Ngọc Lan", desc: "Chiếc búp nhỏ kiên cường khẽ cuộn mình e ấp, chỉ cần một ngụm nước mỗi tuần là đủ vui vẻ tỏa hương sắc dịu dàng bên bàn làm việc của bạn.", price: 45000, category: "Sen đá", stock: 24, icon: "🌵" },
+  { id: "p1", name: "Trầu bà Nam Mỹ", desc: “Một chút xanh, một chút đáng yêu — Monstera sẽ giúp góc nhỏ của bạn luôn tràn đầy sức sống và tươi mới.”, price: 185000, category: "Cây lớn", stock: 8, icon: "🌿" },
+  { id: "p2", name: "Sen đá Ngọc Lan", desc: “Bé nhỏ xinh xắn chẳng cần chăm sóc cầu kỳ, chỉ một chút nước mỗi tuần là đã đủ xanh tươi, dịu dàng làm bạn với góc bàn mỗi ngày.”, price: 45000, category: "Sen đá", stock: 24, icon: "🌺" },
   { id: "p3", name: "Lưỡi hổ vàng", desc: "Chàng dũng sĩ khoác áo sọc vàng luôn đứng gác âm thầm góc phòng, lọc sạch bụi bẩn suốt đêm để trao cho bạn một giấc ngủ thật an yên.", price: 95000, category: "Cây lớn", stock: 15, icon: "🪴" },
-  { id: "p4", name: "Xương rồng tai thỏ", desc: "Hai chiếc tai thỏ xanh mướt lúc nào cũng vểnh lên nghe ngóng. Nhiệm vụ tối cao của bé là nhắc bạn uống nước đúng giờ và thư giãn sau giờ chạy deadline.", price: 39000, category: "Sen đá", stock: 30, icon: "🌵" },
-  { id: "p5", name: "Trầu bà lá phượng", desc: "Nàng thơ tóc dài buông lơi mềm mại bên kệ sách, khẽ đung đưa theo từng cơn gió thoảng và lắng nghe tiếng lật sách thì thầm mỗi chiều mưa.", price: 68000, category: "Cây leo", stock: 12, icon: "🌱" },
+  { id: "p4", name: "Xương rồng tai thỏ", desc: “Đôi tai nhỏ xinh, dáng đứng đáng yêu — bé Xương Rồng luôn sẵn sàng làm góc phòng của bạn thêm vui mắt và tràn đầy sức sống.”, price: 39000, category: "Sen đá", stock: 30, icon: "🌵" },
+  { id: "p5", name: "Trầu bà lá phượng", desc: “Bé Trầu Bà nhỏ xinh cứ thế vươn mình bên kệ sách, từng chiếc lá đung đưa nhẹ nhàng như đang chào bạn sau một ngày dài.”, price: 68000, category: "Cây leo", stock: 12, icon: "🌱" },
   { id: "p6", name: "Chậu gốm nung tay", desc: "Món quà nung ấm từ đất mẹ với đôi má hồng mộc mạc, luôn mở rộng vòng tay để ủ ấm bộ rễ và nâng niu từng mầm xanh nhỏ bé lớn khôn.", price: 55000, category: "Chậu & phụ kiện", stock: 20, icon: "🏺" },
-];
+  {id: "p7", name: "Kumanthong", desc: "Bé nhỏ đáng yêu với vẻ ngoài tinh nghịch, sẵn sàng làm người bạn đồng hành mang đến chút vui vẻ và ấm áp cho góc nhỏ của bạn.", price: 100000000, category: "Chậu & phụ kiện", stock: 15, icon: "😈"},
+    ];
 
 const formatVND = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -86,7 +87,7 @@ function App() {
     if (user.role === "admin") {
       setAdminAuthed(true);
       setView("admin"); // Chuyển hướng trực tiếp vào trang quản trị của Admin
-      notify("Chào mừng Quản trị viên " + (user.full_name || user.username) + " đến với Studio Quản trị! 🛡️");
+      notify("Chào mừng Quản trị viên " + (user.full_name || user.username)🛡️");
     } else {
       setAdminAuthed(false);
       setView("shop"); // Chuyển hướng trực tiếp vào trang cửa hàng của Khách
@@ -260,7 +261,7 @@ function App() {
       if (!authed) throw new Error("Sai mật khẩu");
       setAdminAuthed(true);
       setPasswordError(false);
-      notify("Chào mừng bạn trở lại Studio Quản trị! 🛡️");
+      notify("Chào mừng bạn trở lại Quản trị! 🛡️");
     } catch {
       setPasswordError(true);
     }
