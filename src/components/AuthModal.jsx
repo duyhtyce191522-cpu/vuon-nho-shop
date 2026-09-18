@@ -272,32 +272,7 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
               </button>
             </div>
 
-            <div className="auth-quick-fill">
-              <span className="auth-quick-label">
-                <Sparkles size={13} /> Gợi ý tên đăng nhập:
-              </span>
-              <div className="auth-quick-buttons">
-                <button
-                  type="button"
-                  onClick={() => fillUsername("admin")}
-                  className="auth-demo-pill"
-                  title="Điền tên đăng nhập admin"
-                >
-                  <b>🛡️ Admin:</b> admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillUsername("khachhang")}
-                  className="auth-demo-pill"
-                  title="Điền tên đăng nhập khách hàng"
-                >
-                  <b>🌱 Khách:</b> khachhang
-                </button>
-              </div>
-              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", textAlign: "center" }}>
-                * Chỉ gợi ý tên đăng nhập, bạn tự nhập mật khẩu nhé
-              </div>
-            </div>
+           
           </form>
         ) : (
           <form onSubmit={handleRegister} className="form-stack">
