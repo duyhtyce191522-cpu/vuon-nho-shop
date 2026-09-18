@@ -143,7 +143,7 @@ function App() {
     if (user.role === "admin") {
       setAdminAuthed(true);
       setView("admin"); // Chuyển hướng trực tiếp vào trang quản trị của Admin
-      notify("Chào mừng Quản trị viên " + (user.full_name || user.username)+🛡️");
+      notify("Chào mừng Quản trị viên " + (user.full_name || user.username)+"🛡️");
     } else {
       setAdminAuthed(false);
       setView("shop"); // Chuyển hướng trực tiếp vào trang cửa hàng của Khách
