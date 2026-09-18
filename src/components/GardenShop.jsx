@@ -332,14 +332,40 @@ export default function GardenShop({ products, allCount, search, setSearch, cate
       ))}
     </section>
 
-    <footer className="garden-footer">
-      <div>
-        <Sprout size={24} />
-        <strong>Vườn Nhỏ</strong>
-        <span>Gieo xanh. Gặt bình yên.</span>
-      </div>
-      <span>Được chăm chút bởi Yến Duy <Heart size={13} /></span>
-      <a href="#top">Về đầu vườn ↑</a>
-    </footer>
+   <footer className="garden-footer">
+  {/* Thông tin shop */}
+  <div className="garden-footer-brand">
+    <div className="garden-footer-title">
+      <Sprout size={24} />
+      <strong>Vườn Nhỏ</strong>
+    </div>
+
+    <span>Gieo xanh. Gặt bình yên.</span>
+  </div>
+
+  {/* Thông tin liên hệ */}
+  <div className="garden-footer-contact">
+    <span>
+      📍 Cần Thơ
+    </span>
+
+    <a href="tel:0900000000">
+      ☎ 0900 000 000
+    </a>
+
+    <a href="mailto:yenduy@example.com">
+      ✉ Email
+    </a>
+
+    <span className="garden-footer-owner">
+      Được chăm chút bởi Yến Duy <Heart size={13} />
+    </span>
+  </div>
+
+  {/* Về đầu trang */}
+  <a href="#top">
+    Về đầu vườn ↑
+  </a>
+</footer>
   </main>;
 }
