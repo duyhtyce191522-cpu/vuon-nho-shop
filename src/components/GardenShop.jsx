@@ -349,11 +349,11 @@ export default function GardenShop({ products, allCount, search, setSearch, cate
       📍 Cần Thơ
     </span>
 
-    <a href="tel:0900000000">
-      ☎ 0900 000 000
+    <a href="tel:0347706057">
+      ☎ 0347706057
     </a>
 
-    <a href="mailto:yenduy@example.com">
+    <a href="yenduy339@gmail.com">
       ✉ Email
     </a>
 
