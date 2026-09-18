@@ -97,6 +97,10 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
     const fullName = regForm.fullName.trim();
     const username = regForm.username.trim().toLowerCase().replace(/\s+/g, "");
     const phone = regForm.phone.trim();
+    if (phone && !/^0\d{9,10}$/.test(phone)) {
+  setError("Số điện thoại phải có ít nhất 10 số và bắt đầu bằng 0.");
+  return;
+}
     const address = regForm.address.trim();
     const password = regForm.password;
     const confirmPassword = regForm.confirmPassword;
@@ -298,16 +302,21 @@ export default function AuthModal({ isOpen, initialTab = "login", onClose, onLog
                   required
                 />
               </label>
-
-              <label className="form-field">
-                <span>Số điện thoại</span>
-                <input
-                  type="tel"
-                  value={regForm.phone}
-                  onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                  placeholder="09xx xxx xxx"
-                />
-              </label>
+                        <label className="form-field">
+              <span>Số điện thoại</span>
+              <input
+                type="tel"
+                value={regForm.phone}
+                onChange={(e) =>
+                  setRegForm({
+                    ...regForm,
+                    phone: e.target.value.replace(/\D/g, "")
+                  })
+                }
+                placeholder="Ví dụ: 0901234567"
+                maxLength={11}
+              />
+            </label>
             </div>
 
             <label className="form-field">
