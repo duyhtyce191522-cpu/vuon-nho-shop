@@ -36,7 +36,10 @@ function GardenScene() {
  * Modal hiển thị chi tiết câu chuyện bé cây khi người dùng bấm vào sản phẩm
  */
 function ProductStoryModal({ product, onClose, onAdd }) {
-  const story = getProductStory(product);
+  const story = {
+  ...getProductStory(product),
+  story: product.desc
+};
   const [talking, setTalking] = useState(false);
   const [added, setAdded] = useState(false);
   const stock = Number(product.stock) || 0;
